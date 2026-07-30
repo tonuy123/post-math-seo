@@ -1,0 +1,8 @@
+# Server — placeholder
+
+Phase 2 will add the controllers and route definitions here. For now this
+folder only contains:
+
+- `auth/` — login/logout, token issuance (Phase 2)
+- `posts/` — CRUD, trash/restore, bulk actions (Phase 2)
+- `users/` — RBAC, profile updates (Phase 2)

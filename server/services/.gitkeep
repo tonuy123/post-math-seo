@@ -1,0 +1,4 @@
+# Services — placeholder
+
+Holds business logic shared by controllers (e.g. trash auto-clean, slug
+generation, image-size validation). Phase 2 will populate this folder.

@@ -1,0 +1,5 @@
+# Drop your Firebase service account JSON file here.
+
+# Example: serviceAccountKey.json
+# This file is git-ignored. Never commit credentials.
+# See .gitignore and .env.example for setup.

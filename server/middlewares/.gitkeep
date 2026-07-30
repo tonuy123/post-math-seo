@@ -1,0 +1,6 @@
+# Middlewares — placeholder
+
+Phase 2 will add:
+- `authRequired.js` — verifies Firebase ID token from `Authorization: Bearer`
+- `requireRole(...roles)` — RBAC guard
+- `validateBody.js` — request validation hooks
