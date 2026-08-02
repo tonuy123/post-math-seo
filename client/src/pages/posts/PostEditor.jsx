@@ -13,7 +13,9 @@ import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { postsApi } from '../../services/api/posts';
 import { CATEGORIES, POST_STATUS, DEFAULT_BASE_DOMAIN } from '../../utils/constants';
 import { generateSlug } from '../../utils/helpers';
-import { RankMathSeo } from '../../components/editor/RankMathSeo';
+import { RankMathSeoBox } from '../../components/editor/rankmath';
+import { CategorySidebar } from '../../components/editor/CategorySidebar';
+import { db } from '../../services/firebase/config';
 
 const CATEGORY_LABEL = {
   tech: 'Technology', lifestyle: 'Lifestyle', business: 'Business',
@@ -42,7 +44,7 @@ export default function PostEditor() {
   const [tagInput, setTagInput]       = useState('');
   const [featuredImage, setFeaturedImage] = useState(null);
   const [seo, setSeo]                 = useState({
-    focusKeyword: '', seoTitle: '', seoSlug: '', seoDescription: '',
+    focusKeywords: [], metaTitle: '', slug: '', metaDescription: '',
   });
   const [content, setContent]         = useState('');
   const [loaded, setLoaded]           = useState(isNew);
@@ -79,6 +81,21 @@ export default function PostEditor() {
     selector: '#post-editor',
     initialContent: '',
   });
+
+  // Mirror TinyMCE content into `content` state in real-time so that
+  // downstream consumers (e.g. <RankMathSeoBox /> which scores content
+  // presence of focus keywords) can recompute on every keystroke.
+  // Without this, the SEO score is stuck at whatever was loaded with
+  // the post — typically 0 for fresh posts.
+  useEffect(() => {
+    const inst = editor.editorRef?.current;
+    if (!inst) return undefined;
+    const onInput = () => setContent(inst.getContent() || '');
+    inst.on('input keyup change undo redo', onInput);
+    return () => {
+      try { inst.off('input keyup change undo redo', onInput); } catch { /* ignore */ }
+    };
+  }, [editor]);
 
   // Restore flow: when URL ends in /restore, call restore API then redirect.
   useEffect(() => {
@@ -117,11 +134,19 @@ export default function PostEditor() {
       setTags(p.tags || []);
       setFeaturedImage(p.featuredImage || null);
       setContent(p.content || '');
+      // Backwards-compat: server may have stored legacy shape
+      // ({focusKeyword}) or new shape ({focusKeywords[]}). Handle both.
+      const legacyFocus = p.seo?.focusKeyword;
+      const newFocus    = p.seo?.focusKeywords;
+      const focusKeywords = Array.isArray(newFocus)
+        ? newFocus
+        : (legacyFocus ? [legacyFocus] : []);
+
       setSeo({
-        focusKeyword:   p.seo?.focusKeyword   || '',
-        seoTitle:       p.seo?.seoTitle       || p.title || '',
-        seoSlug:        p.seo?.seoSlug        || p.slug  || '',
-        seoDescription: p.seo?.seoDescription || p.excerpt || '',
+        focusKeywords,
+        metaTitle:       p.seo?.metaTitle       ?? p.seo?.seoTitle       ?? p.title   ?? '',
+        slug:            p.seo?.slug            ?? p.seo?.seoSlug        ?? p.slug    ?? '',
+        metaDescription: p.seo?.metaDescription ?? p.seo?.seoDescription ?? p.excerpt ?? '',
       });
       editor.setContent(p.content || '');
       setLoaded(true);
@@ -180,7 +205,7 @@ export default function PostEditor() {
   function gatherPayload() {
     const body = editor.getContent() || '';
     setContent(body);
-    const seoSlug = seo.seoSlug || generateSlug(title);
+    const seoSlug = seo.slug || generateSlug(title);
     // Task 6: ensure `status` is always a valid POST_STATUS value in payload,
     // fall back to DRAFT if dropdown somehow lost its value.
     const finalStatus = [POST_STATUS.DRAFT, POST_STATUS.PUBLISHED, POST_STATUS.PRIVATE].includes(status)
@@ -191,7 +216,15 @@ export default function PostEditor() {
       categories: [...categories].map(k => CATEGORY_LABEL[k]),
       tags, status: finalStatus, excerpt, content: body, schedule,
       featuredImage,
-      seo,
+      // Send BOTH legacy + new shape so any server version keeps working.
+      // Primary keyword mirrors into legacy `focusKeyword` for old APIs.
+      seo: {
+        ...seo,
+        focusKeyword:   seo.focusKeywords?.[0] ?? '',
+        seoTitle:       seo.metaTitle,
+        seoSlug:        seo.slug,
+        seoDescription: seo.metaDescription,
+      },
     };
   }
 
@@ -290,9 +323,20 @@ export default function PostEditor() {
             <textarea id="post-editor" className="tinymce-editor" />
           </div>
 
-          <div className="p-4 bg-[#f6f7f7] rounded">
+          <div className="p-4 bg-white border border-wp-gray-dark rounded mb-4 w-full">
             <h3 className="text-sm font-semibold mb-2">{t('excerpt')}</h3>
             <Textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} placeholder={t('excerptPlaceholder')} rows={3} />
+          </div>
+
+          {/* Rank Math SEO — moved out of the 320px sidebar so it has
+             room to breathe. Sits right under the Excerpt block, full
+             width of the Main column. */}
+          <div className="w-full">
+            <RankMathSeoBox
+              value={{ ...seo, content, baseDomain: DEFAULT_BASE_DOMAIN }}
+              onChange={(next) => setSeo(next)}
+              baseDomain={DEFAULT_BASE_DOMAIN}
+            />
           </div>
         </div>
 
@@ -322,18 +366,13 @@ export default function PostEditor() {
             </div>
           </div>
 
-          {/* Categories */}
-          <div className="bg-white border border-wp-gray-dark rounded">
-            <h3 className="px-4 py-2.5 bg-[#f6f7f7] border-b border-wp-gray-dark text-sm font-semibold m-0">{t('categoriesHeader')}</h3>
-            <div className="p-4 flex flex-col gap-2">
-              {Object.entries(CATEGORY_LABEL).map(([key, label]) => (
-                <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" checked={categories.has(key)} onChange={() => toggleCategory(key)} />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
+          {/* Categories — Firebase-powered via <CategorySidebar />
+             (replaces the old hardcoded CATEGORY_LABEL block). */}
+          <CategorySidebar
+            selected={[...categories]}
+            onChange={(ids) => setCategories(new Set(ids))}
+            db={db}
+          />
 
           {/* Tags */}
           <div className="bg-white border border-wp-gray-dark rounded">
@@ -382,9 +421,6 @@ export default function PostEditor() {
               </div>
             </div>
           </div>
-
-          {/* Rank Math SEO */}
-          <RankMathSeo value={{ ...seo, content }} onChange={(next) => setSeo(next)} baseDomain={DEFAULT_BASE_DOMAIN} />
 
           {/* Trash */}
           {!isNew && (
