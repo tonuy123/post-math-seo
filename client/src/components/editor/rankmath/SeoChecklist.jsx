@@ -59,8 +59,8 @@ export function SeoChecklist({ checks = [], onFocus }) {
 // ─── Section accordion sub-component ─────────────────────────────────────
 
 function SectionAccordion({ section, items, onFocus }) {
-  // Default OPEN — matches Rank Math screenshot.
-  const [open, setOpen] = useState(true);
+  // Default CLOSED — user expands each section by clicking the chevron.
+  const [open, setOpen] = useState(false);
 
   const passedCount = items.filter((i) => i.passed).length;
   const failedCount = items.length - passedCount;

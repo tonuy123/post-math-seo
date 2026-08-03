@@ -25,7 +25,7 @@ export function SeoTabs({ value, onChange }) {
     <div
       role="tablist"
       aria-label="SEO settings tabs"
-      className="flex items-stretch border-b border-wp-gray bg-white px-2 overflow-x-auto"
+      className="flex items-stretch flex-wrap border-b border-wp-gray bg-white px-2"
     >
       {SEO_TABS.map(({ id, label, Icon }) => {
         const isActive = value === id;

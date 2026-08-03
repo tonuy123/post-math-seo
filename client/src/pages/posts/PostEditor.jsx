@@ -15,6 +15,7 @@ import { CATEGORIES, POST_STATUS, DEFAULT_BASE_DOMAIN } from '../../utils/consta
 import { generateSlug } from '../../utils/helpers';
 import { RankMathSeoBox } from '../../components/editor/rankmath';
 import { CategorySidebar } from '../../components/editor/CategorySidebar';
+import { PostAnalyticsWidget } from '../../components/editor/PostAnalyticsWidget';
 import { db } from '../../services/firebase/config';
 
 const CATEGORY_LABEL = {
@@ -43,6 +44,11 @@ export default function PostEditor() {
   const [tags, setTags]               = useState([]);
   const [tagInput, setTagInput]       = useState('');
   const [featuredImage, setFeaturedImage] = useState(null);
+  const [analytics, setAnalytics]     = useState({
+    seoScore: 0, views: 0, bounceRate: 0,
+    ctr: 0, avgTimeOnPage: 0,
+    loading: true,
+  });
   const [seo, setSeo]                 = useState({
     focusKeywords: [], metaTitle: '', slug: '', metaDescription: '',
   });
@@ -60,6 +66,16 @@ export default function PostEditor() {
     initialRef.current = null;
     setIsDirty(false);
   }, [id, isNew]);
+
+  useEffect(() => {
+    if (isNew) {
+      setAnalytics({
+        seoScore: 0, views: 0, bounceRate: 0,
+        ctr: 0, avgTimeOnPage: 0,
+        loading: false,
+      });
+    }
+  }, [isNew]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -150,6 +166,8 @@ export default function PostEditor() {
       });
       editor.setContent(p.content || '');
       setLoaded(true);
+
+      loadAnalytics(id);
     }).catch((e) => {
       hideLoading(token);
       showToast(e.message, 'error');
@@ -158,6 +176,37 @@ export default function PostEditor() {
     return () => hideLoading(token);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  /**
+   * Fetch + populate the analytics card.
+   * Safe to call repeatedly — wired to the Refresh button on
+   * <PostAnalyticsWidget /> so the user can pull live numbers
+   * (views / bounceRate / CTR / avgTimeOnPage / seoScore) on demand.
+   *
+   * Expected fields on the post document (all optional, fallback 0):
+   *   seoScore, views, bounceRate, ctr, avgTimeOnPage
+   *
+   * Swap to a dedicated endpoint (e.g. postsApi.getAnalytics(id)) when
+   * the analytics service lands — just replace the body of this fn.
+   */
+  async function loadAnalytics(postId) {
+    if (!postId) return;
+    setAnalytics((a) => ({ ...a, loading: true }));
+    try {
+      const res = await postsApi.get(postId);
+      const p = res?.post || {};
+      setAnalytics({
+        seoScore:      p.seoScore      ?? 0,
+        views:         p.views         ?? 0,
+        bounceRate:    p.bounceRate    ?? 0,
+        ctr:           p.ctr           ?? 0,
+        avgTimeOnPage: p.avgTimeOnPage ?? 0,
+        loading:       false,
+      });
+    } catch {
+      setAnalytics((a) => ({ ...a, loading: false }));
+    }
+  }
 
   function onTitleChange(e) {
     const v = e.target.value;
@@ -421,6 +470,17 @@ export default function PostEditor() {
               </div>
             </div>
           </div>
+
+          {/* Post analytics — donut chart + 4 stats (2x2 grid) */}
+          <PostAnalyticsWidget
+            seoScore={analytics.seoScore}
+            views={analytics.views}
+            bounceRate={analytics.bounceRate}
+            ctr={analytics.ctr}
+            avgTimeOnPage={analytics.avgTimeOnPage}
+            isLoading={analytics.loading}
+            onRefresh={() => loadAnalytics(id)}
+          />
 
           {/* Trash */}
           {!isNew && (
