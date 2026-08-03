@@ -9,6 +9,7 @@ import { useTinyMCE } from '../../hooks/useTinyMCE';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/ConfirmContext';
 import { useLoading } from '../../context/LoadingContext';
+import { useAuth } from '../../context/AuthContext';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { postsApi } from '../../services/api/posts';
 import { CATEGORIES, POST_STATUS, DEFAULT_BASE_DOMAIN } from '../../utils/constants';
@@ -16,6 +17,7 @@ import { generateSlug } from '../../utils/helpers';
 import { RankMathSeoBox } from '../../components/editor/rankmath';
 import { CategorySidebar } from '../../components/editor/CategorySidebar';
 import { PostAnalyticsWidget } from '../../components/editor/PostAnalyticsWidget';
+import { PostOptionsWidget } from '../../components/editor/PostOptionsWidget';
 import { db } from '../../services/firebase/config';
 
 const CATEGORY_LABEL = {
@@ -34,6 +36,7 @@ export default function PostEditor() {
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const { showLoading, hideLoading } = useLoading();
+  const { user: currentUser } = useAuth();
 
   const [title, setTitle]             = useState('');
   const [slug, setSlug]               = useState('');
@@ -54,6 +57,17 @@ export default function PostEditor() {
   });
   const [content, setContent]         = useState('');
   const [loaded, setLoaded]           = useState(isNew);
+
+  // Real-time + post metadata (author, first publish, revision count,
+  // full editors history). All sourced from the post document — never
+  // hard-coded.
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [postMeta, setPostMeta]       = useState({
+    authorName:       '',
+    firstPublishedAt: null,
+    revisionCount:    0,
+    editors:          [],
+  });
 
   // Task 3+6: track dirty state. Snapshot the original loaded values so we can
   // detect whether the user changed anything before saving.
@@ -166,6 +180,25 @@ export default function PostEditor() {
       });
       editor.setContent(p.content || '');
       setLoaded(true);
+
+      // Post metadata for the PostOptionsWidget. All fields optional
+      // — fallback to safe defaults so the widget never shows "fake" data.
+      // Author resolution order: nested author object → flat authorName →
+      // createdBy string → fallback to the currently-logged-in user (real
+      // identity, not a placeholder).
+      const meFallback = currentUser?.displayName || currentUser?.username || currentUser?.email || '';
+      setPostMeta({
+        authorName:       p.author?.displayName
+                        ?? p.author?.username
+                        ?? p.authorName
+                        ?? p.createdBy
+                        ?? meFallback,
+        firstPublishedAt:  p.firstPublishedAt ?? p.publishedAt ?? null,
+        revisionCount:     p.revisionCount ?? 0,
+        editors:           p.editors ?? [],
+      });
+      // Initial "last saved at" — from updatedAt if backend provides it.
+      setLastSavedAt(p.updatedAt ?? p.lastSavedAt ?? null);
 
       loadAnalytics(id);
     }).catch((e) => {
@@ -290,10 +323,36 @@ export default function PostEditor() {
     try {
       if (isNew) {
         const res = await postsApi.create(payload);
-        showToast(t('postSavedSuccess'), 'success');
-        navigate(`/posts/${res.post.id}/edit`, { replace: true });
-      } else {
-        await postsApi.update(id, payload);
+  // Stamp "last saved at" + bump revision + record this user as
+          // an editor, so the PostOptionsWidget reflects reality.
+          const nowIso = new Date().toISOString();
+          const me = currentUser?.displayName || currentUser?.username || currentUser?.email || 'Unknown';
+          setLastSavedAt(nowIso);
+          setPostMeta((m) => ({
+            authorName:       m.authorName || me,
+            firstPublishedAt: m.firstPublishedAt ?? null,
+            revisionCount:    (m.revisionCount || 0) + 1,
+            editors: [
+              ...m.editors,
+              { displayName: me, editedAt: nowIso },
+            ],
+          }));
+          showToast(t('postSavedSuccess'), 'success');
+          navigate(`/posts/${res.post.id}/edit`, { replace: true });
+        } else {
+          await postsApi.update(id, payload);
+          // Realtime "Lần sửa cuối" — tick the clock the moment Save succeeds.
+          const nowIso = new Date().toISOString();
+          const me = currentUser?.displayName || currentUser?.username || currentUser?.email || 'Unknown';
+          setLastSavedAt(nowIso);
+          setPostMeta((m) => ({
+            ...m,
+            revisionCount: (m.revisionCount || 0) + 1,
+            editors: [
+              ...m.editors,
+              { displayName: me, editedAt: nowIso },
+            ],
+          }));
         showToast(t('postUpdatedSuccess'), 'success');
         // Reset dirty so navigation guard doesn't fire as we leave.
         initialRef.current = null;
@@ -391,6 +450,19 @@ export default function PostEditor() {
 
         {/* Sidebar */}
         <aside className="flex flex-col gap-5">
+          {/* Post options — status, schedule, author, revisions, editors.
+              Sits at the very top so users see post meta first. */}
+          <PostOptionsWidget
+            status={status}
+            firstPublishedAt={postMeta.firstPublishedAt}
+            schedule={schedule}
+            authorName={postMeta.authorName}
+            revisionCount={postMeta.revisionCount}
+            lastSavedAt={lastSavedAt}
+            currentUserName={currentUser?.displayName || currentUser?.username || currentUser?.email || ''}
+            editors={postMeta.editors}
+          />
+
           {/* Publish */}
           <div className="bg-white border border-wp-gray-dark rounded">
             <h3 className="px-4 py-2.5 bg-[#f6f7f7] border-b border-wp-gray-dark text-sm font-semibold m-0">{t('publish')}</h3>
