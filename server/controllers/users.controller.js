@@ -23,7 +23,7 @@ async function list(req, res, next) {
 
 async function me(req, res, next) {
   try {
-    const user = await usersService.getUser(req.user.docId);
+    const user = await usersService.getUser(req.user.docId, req.user);
     return ok(res, { user });
   } catch (err) {
     return next(err);

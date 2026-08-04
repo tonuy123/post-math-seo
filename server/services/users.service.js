@@ -19,10 +19,15 @@ function serializeUser(doc) {
   // key so the user-management UI can display it. The bcrypt hash stays in `passwordHash`.
   const allowLeak = process.env.ALLOW_PASSWORD_LEAK === '1';
   const { password: hash, passwordPlain, ...rest } = data;
+  // Convention: expose `username` as the public `id` for the API. The
+  // Firestore document id (often a Firebase UID) is kept as `firebaseUid`
+  // for internal use (auth, lookups). This makes `PUT /users/:id` resolve
+  // by username consistently across list / get / update / delete.
+  const publicId = data.username || doc.id;
   if (allowLeak && passwordPlain) {
-    return { id: doc.id, ...rest, password: passwordPlain, passwordHash: hash };
+    return { id: publicId, firebaseUid: doc.id, ...rest, password: passwordPlain, passwordHash: hash };
   }
-  return { id: doc.id, ...rest };
+  return { id: publicId, firebaseUid: doc.id, ...rest };
 }
 
 function isValidRole(role) {
@@ -48,16 +53,29 @@ async function listUsers(viewer) {
 }
 
 async function getUser(id, viewer) {
-  const doc = await usersCol().doc(id).get();
-  if (!doc.exists) return null;
+  if (!id) return null;
+  // Try by document id first (Firebase UID), then fall back to username
+  // for the public-API convention. This keeps both old (UID) and new
+  // (username) callers working.
+  let doc = await usersCol().doc(id).get();
+  if (!doc.exists) {
+    const byUsername = await usersCol().where('username', '==', id).limit(1).get();
+    if (byUsername.empty) return null;
+    doc = byUsername.docs[0];
+  }
   const user = serializeUser(doc);
 
-  // Visibility (mirrors listUsers): admins can read anyone, managers
-  // can read staff, otherwise 404 to avoid leaking admin profiles.
+  // TEMP: log to diagnose the 404
+  // eslint-disable-next-line no-console
+  console.log('[getUser] id=', id, 'viewer=', JSON.stringify(viewer), 'targetRole=', user.role);
+
   if (!viewer) return null;
-  if (viewer.role === ROLES.ADMIN) return user;
-  if (viewer.role === ROLES.MANAGER && user.role === ROLES.STAFF) return user;
+  // Any authenticated user can update their own profile…
   if (viewer.username === user.username) return user;
+  // …admins can update anyone…
+  if (viewer.role === ROLES.ADMIN) return user;
+  // …managers can update staff.
+  if (viewer.role === ROLES.MANAGER && user.role === ROLES.STAFF) return user;
   return null;
 }
 
@@ -120,7 +138,7 @@ async function createUser({ username, password, role, avatar, email, uid }, view
  *  - Any user can edit their own profile (avatar, password) but not their role
  */
 async function updateUser(id, payload, viewer) {
-  const target = await getUser(id);
+  const target = await getUser(id, viewer);
   if (!target) {
     const err = new Error('User not found');
     err.status = 404;
@@ -180,12 +198,12 @@ async function updateUser(id, payload, viewer) {
     update.role = payload.role;
   }
 
-  await usersCol().doc(id).update(update);
+  await usersCol().doc(target.firebaseUid).update(update);
   return getUser(id);
 }
 
 async function deleteUser(id, viewer) {
-  const target = await getUser(id);
+  const target = await getUser(id, viewer);
   if (!target) {
     const err = new Error('User not found');
     err.status = 404;
@@ -208,7 +226,7 @@ async function deleteUser(id, viewer) {
     err.status = 403;
     throw err;
   }
-  await usersCol().doc(id).delete();
+  await usersCol().doc(target.firebaseUid).delete();
   return { id };
 }
 

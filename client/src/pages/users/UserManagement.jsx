@@ -104,7 +104,11 @@ export default function UserManagement() {
   // ---- Edit flow (inline accordion) ----
   function openEdit(u) {
     const snapshot = {
-      id: u.id,
+      // `id` here is the API identifier = username (the backend's
+      // public convention). Firestore doc id (= Firebase UID) is kept
+      // as `firebaseUid` for future use, but NOT sent on the wire.
+      id: u.username,
+      firebaseUid: u.firebaseUid || u.id,
       username: u.username || '',
       // Backend (khi ALLOW_PASSWORD_LEAK=1) trả password plaintext → fill vào ô input
       // để admin xem được mật khẩu hiện tại. User có thể nhấn icon mắt toggle show/hide.
@@ -114,7 +118,7 @@ export default function UserManagement() {
     };
     setOriginalSnapshot(snapshot);
     setEditDraft(snapshot);
-    setEditingUserId(u.id);
+    setEditingUserId(snapshot.id);
     setAddMode(false);
     setAddDraft(null);
   }
@@ -171,7 +175,7 @@ export default function UserManagement() {
       danger: true,
       onConfirm: async () => {
         try {
-          await usersApi.remove(u.id);
+          await usersApi.remove(u.username);
           showToast(t('userDeletedSuccess'), 'success');
           await load();
         } catch (e) { showToast(e.message, 'error'); }
@@ -204,17 +208,17 @@ export default function UserManagement() {
               <div className="text-lg font-semibold text-ink-primary">{me.username}</div>
               <div className="text-sm text-ink-secondary"><RoleBadge role={me.role} /></div>
             </div>
-            <Button variant="primary" onClick={() => openEdit({ id: me.id, username: me.username, role: me.role, avatar: me.avatar, password: '' })}>
+            <Button variant="primary" onClick={() => openEdit({ id: me.username, firebaseUid: me.firebaseUid || me.id, username: me.username, role: me.role, avatar: me.avatar, password: '' })}>
               {t('editMyProfile')}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Self edit form — hiển thị khi editingUserId === me.id.
+      {/* Self edit form — hiển thị khi editingUserId === me.username.
           Self không có row trong table (backend listUsers filter ra admin), nên form
           phải render ở đây thay vì accordion inline. */}
-      {me && editingUserId === me.id && editDraft && (
+      {me && editingUserId === me.username && editDraft && (
         <div className="bg-[#f6f7f7] border border-wp-gray-dark rounded p-6 mb-6">
           <h3 className="text-base font-semibold mb-5">{t('editUserAccount')}</h3>
           <div className="flex flex-col items-center mb-6">
@@ -269,7 +273,7 @@ export default function UserManagement() {
             <tbody>
               {safeUsers.map((u) => {
                 const isOpen = editingUserId === u.id;
-                const isSelf = me?.id === u.id;
+                const isSelf = me?.username === u.username;
                 return (
                   <UserRow
                     key={u.id}

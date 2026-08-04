@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Search, ChevronLeft, ChevronRight, Trash2, RotateCcw, X,
-  Files, Send, FileText, Lock, ListChecks, MousePointerClick,
+  Files, Send, FileText, Lock, ListChecks,
 } from 'lucide-react';
 
 import { usePosts } from '../../hooks/usePosts';
@@ -68,12 +68,11 @@ export default function PostsList() {
   const [search, setSearch]         = useState('');
   const [category, setCategory]     = useState('');
   const [author, setAuthor]         = useState('');
-  const [selected, setSelected]     = useState(new Set());
+  // Selection lives as a plain string[] of post IDs. The checkbox column
+  // is ALWAYS visible — no "selection mode" toggle. Toggling a row adds
+  // or removes its id; the header checkbox reflects bulk state.
+  const [selectedPosts, setSelectedPosts] = useState([]);
   const [page, setPage]             = useState(1);
-  // Requirement #1: checkboxes & selection only live while in "selection mode".
-  // Entering the mode selects the current page automatically; leaving it
-  // wipes the selection and hides the column.
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   // -------- Filtering --------
   const filtered = useMemo(() => {
@@ -119,62 +118,47 @@ export default function PostsList() {
     [posts]
   );
 
-  // -------- Selection mode helpers --------
-  // "Chọn tất cả" — INDEPENDENT action. Always adds EVERY filtered post
-  // to `selected`, regardless of whether selection mode is currently on.
-  // If mode is off, it auto-enables it so checkboxes & bulk bar appear.
-  function selectAllPosts() {
-    if (!isSelectionMode) setIsSelectionMode(true);
-    setSelected(prev => {
-      const next = new Set(prev);
-      filtered.forEach(p => next.add(p.id));
-      return next;
-    });
-  }
-  // "Chọn khi" — ONLY manages the UI mode. Never pre-selects anything.
-  // If already in selection mode, behaves like an exit toggle.
-  function enterSelectionModeManual() {
-    setIsSelectionMode(prev => !prev);
-    // Don't wipe existing selection on enter; do wipe on exit.
-  }
-  function exitSelectionMode() {
-    setIsSelectionMode(false);
-    setSelected(new Set());
-  }
+  // -------- Selection helpers (array-based) --------
+  // Header checkbox is "checked" when every currently-displayed row is
+  // also in the selection. If there's nothing to show, it's unchecked.
+  const allOnPageChecked = pageItems.length > 0
+    && pageItems.every(p => selectedPosts.includes(p.id));
+  const someOnPageChecked = pageItems.some(p => selectedPosts.includes(p.id));
 
-  const allOnPageChecked = pageItems.length > 0 && pageItems.every(p => selected.has(p.id));
-  const someOnPageChecked = pageItems.some(p => selected.has(p.id));
   function toggleOne(id) {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setSelectedPosts((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   }
-  function togglePage() {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (allOnPageChecked) pageItems.forEach(p => next.delete(p.id));
-      else pageItems.forEach(p => next.add(p.id));
-      return next;
-    });
+  // Header onChange — per spec:
+  //   • checking  → push every visible row id into selectedPosts
+  //   • unchecking → clear the array
+  function toggleAllVisible(e) {
+    if (e.target.checked) {
+      setSelectedPosts((prev) => {
+        const merged = new Set(prev);
+        pageItems.forEach((p) => merged.add(p.id));
+        return [...merged];
+      });
+    } else {
+      setSelectedPosts([]);
+    }
   }
-  function clearSelection() { setSelected(new Set()); }
 
   function changeFilter(key) {
     setFilter(key);
     setPage(1);
-    if (isSelectionMode) exitSelectionMode();
+    setSelectedPosts([]);
   }
 
   // -------- Bulk actions --------
   async function doBulk(action) {
-    const ids = [...selected];
+    const ids = selectedPosts;
     if (!ids.length) return;
     try {
       await postsApi.bulk(action, ids);
       showToast(`Bulk ${action} complete`, 'success');
-      exitSelectionMode();
+      setSelectedPosts([]);
       await refresh();
     } catch (e) {
       showToast(e.message, 'error');
@@ -194,48 +178,6 @@ export default function PostsList() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 bg-white border-b-2 border-wp-gray">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* "Chọn tất cả" — INDEPENDENT bulk action. Always adds every
-             filtered post to `selected`. If selection mode is off, it
-             auto-enables it. Re-clicking while mode is on does NOT
-             exit; it simply re-adds everything (idempotent). */}
-          <button
-            onClick={selectAllPosts}
-            className={[
-              'inline-flex items-center gap-2 h-9 px-3.5 rounded border text-sm font-medium transition',
-              isSelectionMode && allOnPageChecked
-                ? 'bg-wp-blue border-wp-blue text-white hover:bg-wp-blue/90'
-                : isSelectionMode && someOnPageChecked
-                  ? 'bg-wp-blue/10 border-wp-blue text-wp-blue hover:bg-wp-blue/20'
-                  : 'bg-white border-wp-gray-dark text-ink-secondary hover:border-wp-blue hover:text-wp-blue',
-            ].join(' ')}
-            aria-label={t('selectAll')}
-          >
-            <ListChecks size={14} />
-            <span>{t('selectAll')}</span>
-          </button>
-          {/* "Chọn khi" — ONLY toggles the selection UI mode.
-             Never pre-selects posts; user ticks checkboxes manually.
-             Independent from "Chọn tất cả". */}
-          <button
-            onClick={() => (isSelectionMode ? exitSelectionMode() : enterSelectionModeManual())}
-            className={[
-              'inline-flex items-center gap-2 h-9 px-3.5 rounded border text-sm font-medium transition',
-              isSelectionMode
-                ? 'bg-wp-blue/10 border-wp-blue text-wp-blue hover:bg-wp-blue/20'
-                : 'bg-white border-wp-gray-dark text-ink-secondary hover:border-wp-blue hover:text-wp-blue',
-            ].join(' ')}
-            aria-label={t('selectIndividually')}
-            aria-pressed={isSelectionMode}
-            title={t('selectIndividually')}
-          >
-            <MousePointerClick size={14} />
-            <span>{t('selectIndividually')}</span>
-          </button>
-          {/* Two explicit bulk buttons — always visible (no need to
-             enter selection mode first). Clicking "Chọn tất cả" selects
-             every filtered post across all pages AND auto-enters selection
-             mode so the checkboxes & bulk action bar become visible.
-             [Removed per user request — kept only the original toggle above.] */}
           {/* Category / Author filters — always visible, including the trash tab. */}
           <Select
             value={category}
@@ -279,18 +221,20 @@ export default function PostsList() {
           */}
           <thead className="bg-gray-200 relative z-10 shadow-md">
             <tr className="text-ink-primary uppercase text-xs tracking-wider">
-              {isSelectionMode && (
-                <th className="px-4 py-3 text-left w-10">
-                  <input
-                    type="checkbox"
-                    checked={allOnPageChecked}
-                    ref={(el) => { if (el) el.indeterminate = !allOnPageChecked && someOnPageChecked; }}
-                    onChange={togglePage}
-                    aria-label="select all on page"
-                    className="w-4 h-4 accent-wp-blue"
-                  />
-                </th>
-              )}
+              {/* Header checkbox — ALWAYS visible. Checked when every
+                 currently-displayed row is in selectedPosts. Clicking
+                 pushes all visible ids into the array; unchecking clears
+                 the array. */}
+              <th className="px-4 py-3 text-left w-10">
+                <input
+                  type="checkbox"
+                  checked={allOnPageChecked}
+                  ref={(el) => { if (el) el.indeterminate = !allOnPageChecked && someOnPageChecked; }}
+                  onChange={toggleAllVisible}
+                  aria-label="select all"
+                  className="w-4 h-4 accent-wp-blue cursor-pointer"
+                />
+              </th>
               <th className="px-4 py-3 text-left font-bold">{t('title')}</th>
               <th className="px-4 py-3 text-left w-32 font-bold">{t('author')}</th>
               <th className="px-4 py-3 text-left w-40 font-bold">{t('categories')}</th>
@@ -300,12 +244,12 @@ export default function PostsList() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={isSelectionMode ? 6 : 5} className="p-10 text-center"><Spinner /></td></tr>
+              <tr><td colSpan={6} className="p-10 text-center"><Spinner /></td></tr>
             )}
 
             {!loading && filtered.length === 0 && (
               <tr>
-                <td colSpan={isSelectionMode ? 6 : 5} className="text-center py-16 text-ink-muted">
+                <td colSpan={6} className="text-center py-16 text-ink-muted">
                   <div className="flex flex-col items-center gap-3">
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -318,29 +262,26 @@ export default function PostsList() {
             )}
 
             {!loading && pageItems.map((p) => {
-              const isSelected = selected.has(p.id);
+              const isSelected = selectedPosts.includes(p.id);
               return (
                 <tr
                   key={p.id}
-                  onClick={() => isSelectionMode && toggleOne(p.id)}
+                  onClick={() => toggleOne(p.id)}
                   className={[
-                    'border-t border-wp-gray transition',
-                    isSelectionMode ? 'cursor-pointer' : '',
-                    isSelected ? 'bg-wp-blue/10' : (isSelectionMode ? 'hover:bg-wp-blue/5' : 'hover:bg-[#f6f7f7]'),
+                    'border-t border-wp-gray transition cursor-pointer',
+                    isSelected ? 'bg-wp-blue/10' : 'hover:bg-[#f6f7f7]',
                   ].join(' ')}
                 >
-                  {isSelectionMode && (
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleOne(p.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 accent-wp-blue"
-                        aria-label={`select ${p.title || 'post'}`}
-                      />
-                    </td>
-                  )}
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleOne(p.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-4 h-4 accent-wp-blue cursor-pointer"
+                      aria-label={`select ${p.title || 'post'}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <Avatar src={p.featuredImage} size="sm" alt={p.title} />
@@ -425,12 +366,12 @@ export default function PostsList() {
       </div>
 
       {/* Bulk action bar */}
-      {isSelectionMode && selected.size > 0 && (
+      {selectedPosts.length > 0 && (
         <div className="mx-5 mb-3 mt-3 flex items-center gap-3 px-4 py-3 rounded-lg border border-wp-blue/40 bg-wp-blue/10 text-ink-primary shadow-sm">
           <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-wp-blue text-white">
             <ListChecks size={14} />
           </div>
-          <span className="font-semibold text-wp-blue">{selected.size} selected</span>
+          <span className="font-semibold text-wp-blue">{selectedPosts.length} selected</span>
           <div className="flex-1" />
           {filter === 'trashed' ? (
             <>
@@ -455,7 +396,7 @@ export default function PostsList() {
           */}
           <button
             type="button"
-            onClick={exitSelectionMode}
+            onClick={() => setSelectedPosts([])}
             className="inline-flex items-center gap-1 bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded text-sm font-medium transition"
           >
             <X size={14} />

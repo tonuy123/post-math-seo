@@ -35,7 +35,10 @@ export default function MyProfile() {
 
   function openEdit() {
     const initial = {
-      id: me.id,
+      // API identifier = username (public convention). The Firebase
+      // UID stays in `firebaseUid` for any future server-side use.
+      id: me.username,
+      firebaseUid: me.firebaseUid || me.id,
       username: me.username,
       password: '',
       role: me.role,
