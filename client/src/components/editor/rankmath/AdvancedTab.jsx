@@ -2,21 +2,21 @@ import { useState } from 'react';
 import { Input, Select } from '../../ui/Input';
 
 /**
- * <AdvancedTab /> — "Nâng cao" tab.
- * Mirrors the WordPress Rank Math "Advanced" tab:
- *   • Robots meta (index/noindex/noarchive/etc.)
- *   • Advanced meta robots (max snippet / video / image preview)
+ * <AdvancedTab /> — tab "Nâng cao".
+ * Phản chiếu tab "Advanced" của WordPress Rank Math:
+ *   • Robots meta (index/noindex/noarchive/v.v.)
+ *   • Meta robots nâng cao (đoạn trích / video / bản xem trước ảnh tối đa)
  *   • Canonical URL
  *
- * Controlled: receives `value` (object) and `onChange(patch)` from parent.
- * Falls back to sensible defaults so the UI works standalone too.
+ * Controlled: nhận `value` (object) và `onChange(patch)` từ component chủ.
+ * Rút lui về các giá trị mặc định hợp lý để UI cũng hoạt động độc lập.
  */
 const ROBOTS_META = [
-  // Column 1
+  // Cột 1
   { key: 'index',         label: 'Chỉ mục',                     defaultChecked: true  },
   { key: 'nofollow',      label: 'Nofollow',                    defaultChecked: false },
   { key: 'noImageIndex',  label: 'Không lập chỉ mục hình ảnh',  defaultChecked: false },
-  // Column 2
+  // Cột 2
   { key: 'noIndex',       label: 'Không lập chỉ mục',           defaultChecked: false },
   { key: 'noArchive',     label: 'Không lưu trữ',               defaultChecked: false },
   { key: 'noSnippet',     label: 'Không có đoạn trích xuất',    defaultChecked: false },
@@ -40,16 +40,16 @@ const DEFAULT_VALUE = {
 };
 
 export function AdvancedTab({ value, onChange }) {
-  // Merge incoming value with defaults so partially-filled state still works.
+  // Gộp value đầu vào với các giá trị mặc định để state điền một phần vẫn hoạt động.
   const merged = {
     robots: { ...DEFAULT_VALUE.robots,  ...(value?.robots   ?? {}) },
     advanced: { ...DEFAULT_VALUE.advanced, ...(value?.advanced ?? {}) },
     canonicalUrl: value?.canonicalUrl ?? DEFAULT_VALUE.canonicalUrl,
   };
 
-  // Local mirror so checkboxes / inputs are interactive even without a parent
-  // onChange (e.g. preview / standalone use). When `onChange` exists, we
-  // also bubble the patch up so it can be persisted later.
+  // Bản phản chiếu cục bộ để checkbox / input vẫn tương tác được dù không có
+  // onChange của component chủ (ví dụ dùng xem trước / độc lập). Khi có
+  // `onChange`, ta cũng đẩy patch lên để có thể lưu trữ sau này.
   const [local, setLocal] = useState(merged);
 
   const current = { ...merged, ...local };
@@ -57,8 +57,6 @@ export function AdvancedTab({ value, onChange }) {
   const update = (patch) => {
     setLocal((prev) => ({ ...prev, ...patch }));
     onChange?.(patch);
-    // eslint-disable-next-line no-console
-    console.log('[AdvancedTab] change', patch);
   };
 
   const setRobot = (key, checked) => {
@@ -74,13 +72,13 @@ export function AdvancedTab({ value, onChange }) {
 
   return (
     <div className="flex flex-col gap-5 text-sm">
-      {/* ── Group 1: Robots Meta ──────────────────────────────────────── */}
+      {/* ── Nhóm 1: Robots Meta ───────────────────────────────────────── */}
       <fieldset className="border border-gray-300 rounded p-4">
         <legend className="px-2 text-sm font-semibold text-ink-primary">
           Siêu dữ liệu Robots
         </legend>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          {/* Column 1 */}
+          {/* Cột 1 */}
           <div className="flex flex-col gap-2">
             {col1.map(({ key, label, defaultChecked }) => (
               <label
@@ -97,7 +95,7 @@ export function AdvancedTab({ value, onChange }) {
               </label>
             ))}
           </div>
-          {/* Column 2 */}
+          {/* Cột 2 */}
           <div className="flex flex-col gap-2">
             {col2.map(({ key, label }) => (
               <label
@@ -117,13 +115,13 @@ export function AdvancedTab({ value, onChange }) {
         </div>
       </fieldset>
 
-      {/* ── Group 2: Advanced Meta Robots ─────────────────────────────── */}
+      {/* ── Nhóm 2: Meta Robots nâng cao ───────────────────────────────── */}
       <fieldset className="border border-gray-300 rounded p-4">
         <legend className="px-2 text-sm font-semibold text-ink-primary">
           Meta Robots nâng cao
         </legend>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Max snippet */}
+          {/* Đoạn trích tối đa */}
           <div className="flex flex-col gap-1">
             <label htmlFor="adv-max-snippet" className="text-ink-secondary">
               Đoạn trích tối đa
@@ -136,7 +134,7 @@ export function AdvancedTab({ value, onChange }) {
             />
           </div>
 
-          {/* Max video preview */}
+          {/* Bản xem trước video tối đa */}
           <div className="flex flex-col gap-1">
             <label htmlFor="adv-max-video" className="text-ink-secondary">
               Bản xem trước video tối đa
@@ -149,7 +147,7 @@ export function AdvancedTab({ value, onChange }) {
             />
           </div>
 
-          {/* Max image preview */}
+          {/* Bản xem trước hình ảnh tối đa */}
           <div className="flex flex-col gap-1 md:col-span-2">
             <label htmlFor="adv-max-image" className="text-ink-secondary">
               Bản xem trước hình ảnh tối đa
@@ -167,7 +165,7 @@ export function AdvancedTab({ value, onChange }) {
         </div>
       </fieldset>
 
-      {/* ── Group 3: Canonical URL ────────────────────────────────────── */}
+      {/* ── Nhóm 3: Canonical URL ─────────────────────────────────────── */}
       <fieldset className="border border-gray-300 rounded p-4">
         <legend className="px-2 text-sm font-semibold text-ink-primary">
           URL chính tắc

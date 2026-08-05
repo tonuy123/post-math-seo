@@ -1,33 +1,31 @@
 import { Pencil } from 'lucide-react';
 
 /**
- * <SocialTab /> — "Mạng xã hội" tab.
+ * <SocialTab /> — tab "Mạng xã hội".
  *
- * Initial UI (slim version):
- *   • Heading + 2 short description paragraphs
- *   • Primary CTA that opens the Social Snippet editor modal.
+ * UI ban đầu (bản gọn):
+ *   • Tiêu đề + 2 đoạn mô tả ngắn
+ *   • CTA chính mở modal chỉnh sửa đoạn trích mạng xã hội.
  *
  * Props:
- *   - onOpenSocialModal : () => void   (wired by parent later)
+ *   - onOpenSocialModal : () => void   (sẽ được nối dây bởi component chủ sau này)
  *
- * For now the button just logs to the console so the UI is interactive
- * even before the full modal is built.
+ * Hiện tại nút chỉ ghi log ra console để UI có thể tương tác
+ * ngay cả trước khi modal đầy đủ được xây dựng.
  */
 export function SocialTab({ onOpenSocialModal }) {
   const handleClick = () => {
-    // eslint-disable-next-line no-console
-    console.log('Open Social Modal');
     onOpenSocialModal?.();
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Heading */}
+      {/* Tiêu đề */}
       <h4 className="text-sm font-semibold text-gray-800">
         Xem trước Mạng xã hội
       </h4>
 
-      {/* Description */}
+      {/* Mô tả */}
       <p className="text-sm text-gray-500">
         Tại đây, bạn có thể xem và chỉnh sửa hình thu nhỏ, tiêu đề và mô tả
         sẽ được hiển thị khi trang web của bạn được chia sẻ trên mạng xã hội.

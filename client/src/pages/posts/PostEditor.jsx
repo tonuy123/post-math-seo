@@ -17,15 +17,13 @@ import { POST_STATUS, DEFAULT_BASE_DOMAIN } from '../../utils/constants';
 import { generateSlug } from '../../utils/helpers';
 import { RankMathSeoBox } from '../../components/editor/rankmath';
 import { CategorySidebar } from '../../components/editor/CategorySidebar';
-// TODO Phase 2: nối GA4/Search Console rồi bật lại PostAnalyticsWidget
-// import { PostAnalyticsWidget } from '../../components/editor/PostAnalyticsWidget';
 import { PostOptionsWidget } from '../../components/editor/PostOptionsWidget';
 import { db } from '../../services/firebase/config';
 
-// `categories` state holds category IDs (matching Firestore doc ids).
-// When saving we resolve them to human-readable names so the post
-// document stores a readable label that the PostsList filter can match
-// directly — no joins required.
+// State `categories` lưu các ID của category (khớp với doc id trong Firestore).
+// Khi lưu, ta giải mã chúng thành tên dễ đọc để document bài viết
+// lưu một nhãn đọc được mà bộ lọc PostsList có thể so khớp
+// trực tiếp — không cần join.
 
 
 
@@ -52,26 +50,21 @@ export default function PostEditor() {
   const [tags, setTags]               = useState([]);
   const [tagInput, setTagInput]       = useState('');
   const [featuredImage, setFeaturedImage] = useState(null);
-  const [analytics, setAnalytics]     = useState({
-    seoScore: 0, views: 0, bounceRate: 0,
-    ctr: 0, avgTimeOnPage: 0,
-    loading: true,
-  });
   const [seo, setSeo]                 = useState({
     focusKeywords: [], metaTitle: '', slug: '', metaDescription: '',
   });
   const [content, setContent]         = useState('');
   const [loaded, setLoaded]           = useState(isNew);
 
-  // Persist the NAMES loaded from the post doc so we can re-resolve them
-  // into Firestore IDs once the `categories` collection snapshot lands.
-  // (The Firestore listener fires asynchronously, so the IDs aren't
-  // available the first time we read the post.)
+  // Lưu các TÊN đã tải từ doc bài viết để có thể tái giải mã chúng
+  // thành Firestore ID khi snapshot của collection `categories` được cập nhật.
+  // (Listener của Firestore chạy bất đồng bộ, nên các ID không sẵn sàng
+  // ở lần đầu tiên ta đọc bài viết.)
   const [postCategoryNames, setPostCategoryNames] = useState([]);
 
-  // Real-time + post metadata (author, first publish, revision count,
-  // full editors history). All sourced from the post document — never
-  // hard-coded.
+  // Real-time + metadata bài viết (tác giả, lần xuất bản đầu, số lần sửa đổi,
+  // toàn bộ lịch sử editors). Tất cả đều lấy từ document bài viết — không bao giờ
+  // hard-code.
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [postMeta, setPostMeta]       = useState({
     authorName:       '',
@@ -80,27 +73,17 @@ export default function PostEditor() {
     editors:          [],
   });
 
-  // Task 3+6: track dirty state. Snapshot the original loaded values so we can
-  // detect whether the user changed anything before saving.
+  // Task 3+6: theo dõi trạng thái dirty. Chụp snapshot các giá trị đã tải ban đầu để
+  // phát hiện xem người dùng có thay đổi gì trước khi lưu hay không.
   const initialRef = useRef(null);
   const [isDirty, setIsDirty] = useState(false);
   useUnsavedChangesGuard(isDirty);
 
-  // Reset snapshot whenever we start loading a different post.
+  // Reset snapshot mỗi khi bắt đầu tải một bài viết khác.
   useEffect(() => {
     initialRef.current = null;
     setIsDirty(false);
   }, [id, isNew]);
-
-  useEffect(() => {
-    if (isNew) {
-      setAnalytics({
-        seoScore: 0, views: 0, bounceRate: 0,
-        ctr: 0, avgTimeOnPage: 0,
-        loading: false,
-      });
-    }
-  }, [isNew]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -123,22 +106,22 @@ export default function PostEditor() {
     initialContent: '',
   });
 
-  // Mirror TinyMCE content into `content` state in real-time so that
-  // downstream consumers (e.g. <RankMathSeoBox /> which scores content
-  // presence of focus keywords) can recompute on every keystroke.
-  // Without this, the SEO score is stuck at whatever was loaded with
-  // the post — typically 0 for fresh posts.
+  // Sao chép nội dung TinyMCE vào state `content` theo thời gian thực để
+  // các consumer phía sau (ví dụ <RankMathSeoBox /> chấm điểm dựa trên sự
+  // hiện diện của focus keywords trong nội dung) có thể tính lại sau mỗi lần gõ phím.
+  // Nếu không có bước này, điểm SEO sẽ bị kẹt ở giá trị tải cùng bài viết
+  // — thường là 0 đối với bài viết mới.
   useEffect(() => {
     const inst = editor.editorRef?.current;
     if (!inst) return undefined;
     const onInput = () => setContent(inst.getContent() || '');
     inst.on('input keyup change undo redo', onInput);
     return () => {
-      try { inst.off('input keyup change undo redo', onInput); } catch { /* ignore */ }
+      try { inst.off('input keyup change undo redo', onInput); } catch { /* bỏ qua */ }
     };
   }, [editor]);
 
-  // Restore flow: when URL ends in /restore, call restore API then redirect.
+  // Luồng khôi phục: khi URL kết thúc bằng /restore, gọi API restore rồi chuyển hướng.
   useEffect(() => {
     if (!isRestorePath || !id) return undefined;
     const token = showLoading();
@@ -155,7 +138,7 @@ export default function PostEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRestorePath, id]);
 
-// Load existing post
+// Tải bài viết hiện có
   useEffect(() => {
     if (isNew) return undefined;
     const token = showLoading();
@@ -168,26 +151,29 @@ export default function PostEditor() {
       setExcerpt(p.excerpt || '');
       setStatus(p.status === 'trashed' ? POST_STATUS.DRAFT : (p.status || POST_STATUS.DRAFT));
       setSchedule(p.schedule || '');
-      // Post documents store category NAMES (Vietnamese labels) for
-      // human readability. Map them back to Firestore doc IDs so the
-      // sidebar can check the right boxes. `allCats` arrives
-      // asynchronously via useCategories(); the empty `categories` array
-      // is the harmless initial state (mapping produces empty Set).
-      // We re-run this mapping as soon as `allCats` populates — see
-      // the effect immediately below.
+      // Document bài viết lưu TÊN category (nhãn tiếng Việt) để con người
+      // dễ đọc. Ánh xạ ngược chúng thành Firestore doc ID để sidebar
+      // tích đúng các ô. `allCats` đến bất đồng bộ qua useCategories();
+      // mảng `categories` rỗng là trạng thái ban đầu vô hại (việc ánh xạ tạo ra Set rỗng).
+      // Ta chạy lại việc ánh xạ này ngay khi `allCats` được điền — xem
+      // effect ngay bên dưới.
       setPostCategoryNames(p.categories || []);
       setTags(p.tags || []);
       setFeaturedImage(p.featuredImage || null);
       setContent(p.content || '');
-      // Backwards-compat: server may have stored legacy shape
-      // ({focusKeyword}) or new shape ({focusKeywords[]}). Handle both.
+      // Tương thích ngược: server có thể đã lưu định dạng cũ
+      // ({focusKeyword}) hoặc định dạng mới ({focusKeywords[]}). Xử lý cả hai.
       const legacyFocus = p.seo?.focusKeyword;
       const newFocus    = p.seo?.focusKeywords;
       const focusKeywords = Array.isArray(newFocus)
         ? newFocus
         : (legacyFocus ? [legacyFocus] : []);
 
+      // Giữ NGUYÊN toàn bộ seo đã lưu trong DB (advanced, schemaType,
+      // social*, isCornerstone, ...) — chỉ override 4 key chuẩn hoá,
+      // tránh mất data khi reload rồi save đè lại.
       setSeo({
+        ...(p.seo || {}),
         focusKeywords,
         metaTitle:       p.seo?.metaTitle       ?? p.seo?.seoTitle       ?? p.title   ?? '',
         slug:            p.seo?.slug            ?? p.seo?.seoSlug        ?? p.slug    ?? '',
@@ -196,11 +182,11 @@ export default function PostEditor() {
       editor.setContent(p.content || '');
       setLoaded(true);
 
-      // Post metadata for the PostOptionsWidget. All fields optional
-      // — fallback to safe defaults so the widget never shows "fake" data.
-      // Author resolution order: nested author object → flat authorName →
-      // createdBy string → fallback to the currently-logged-in user (real
-      // identity, not a placeholder).
+      // Metadata bài viết cho PostOptionsWidget. Tất cả các trường đều tuỳ chọn
+      // — fallback về các giá trị mặc định an toàn để widget không bao giờ hiện dữ liệu "giả".
+      // Thứ tự giải mã tác giả: object author lồng nhau → authorName phẳng →
+      // chuỗi createdBy → fallback về người dùng đang đăng nhập (danh tính thật,
+      // không phải chỗ trống).
       const meFallback = currentUser?.displayName || currentUser?.username || currentUser?.email || '';
       setPostMeta({
         authorName:       p.author?.displayName
@@ -212,10 +198,8 @@ export default function PostEditor() {
         revisionCount:     p.revisionCount ?? 0,
         editors:           p.editors ?? [],
       });
-      // Initial "last saved at" — from updatedAt if backend provides it.
+      // "Lần sửa cuối" ban đầu — lấy từ updatedAt nếu backend cung cấp.
       setLastSavedAt(p.updatedAt ?? p.lastSavedAt ?? null);
-
-      loadAnalytics(id);
     }).catch((e) => {
       hideLoading(token);
       showToast(e.message, 'error');
@@ -225,10 +209,10 @@ export default function PostEditor() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Resolve stored category NAMES → Firestore IDs once the categories
-  // snapshot is available. Runs again whenever the categories list
-  // changes (e.g. a new category is added mid-edit) so the sidebar
-  // stays in sync.
+  // Giải mã các TÊN category đã lưu → Firestore ID khi snapshot categories
+  // đã sẵn sàng. Chạy lại mỗi khi danh sách categories thay đổi
+  // (ví dụ: một category mới được thêm giữa chừng khi đang sửa) để sidebar
+  // luôn đồng bộ.
   useEffect(() => {
     if (!postCategoryNames.length) return;
     if (!allCats || !allCats.length) return;
@@ -238,37 +222,6 @@ export default function PostEditor() {
         .filter(Boolean),
     ));
   }, [allCats, postCategoryNames]);
-
-  /**
-   * Fetch + populate the analytics card.
-   * Safe to call repeatedly — wired to the Refresh button on
-   * <PostAnalyticsWidget /> so the user can pull live numbers
-   * (views / bounceRate / CTR / avgTimeOnPage / seoScore) on demand.
-   *
-   * Expected fields on the post document (all optional, fallback 0):
-   *   seoScore, views, bounceRate, ctr, avgTimeOnPage
-   *
-   * Swap to a dedicated endpoint (e.g. postsApi.getAnalytics(id)) when
-   * the analytics service lands — just replace the body of this fn.
-   */
-  async function loadAnalytics(postId) {
-    if (!postId) return;
-    setAnalytics((a) => ({ ...a, loading: true }));
-    try {
-      const res = await postsApi.get(postId);
-      const p = res?.post || {};
-      setAnalytics({
-        seoScore:      p.seoScore      ?? 0,
-        views:         p.views         ?? 0,
-        bounceRate:    p.bounceRate    ?? 0,
-        ctr:           p.ctr           ?? 0,
-        avgTimeOnPage: p.avgTimeOnPage ?? 0,
-        loading:       false,
-      });
-    } catch {
-      setAnalytics((a) => ({ ...a, loading: false }));
-    }
-  }
 
   function onTitleChange(e) {
     const v = e.target.value;
@@ -317,14 +270,14 @@ export default function PostEditor() {
     const body = editor.getContent() || '';
     setContent(body);
     const seoSlug = seo.slug || generateSlug(title);
-    // Task 6: ensure `status` is always a valid POST_STATUS value in payload,
-    // fall back to DRAFT if dropdown somehow lost its value.
+    // Task 6: đảm bảo `status` luôn là giá trị POST_STATUS hợp lệ trong payload,
+    // fallback về DRAFT nếu dropdown bất ngờ mất giá trị.
     const finalStatus = [POST_STATUS.DRAFT, POST_STATUS.PUBLISHED, POST_STATUS.PRIVATE].includes(status)
       ? status
       : POST_STATUS.DRAFT;
-    // Resolve selected category IDs → readable names so the post document
-    // stores what the user actually sees ("Công Nghệ") rather than opaque
-    // Firestore IDs. Fall back to the raw value if the lookup misses.
+    // Giải mã các ID category đã chọn → tên dễ đọc để document bài viết
+    // lưu những gì người dùng thực sự thấy ("Công Nghệ") thay vì các
+    // Firestore ID khó hiểu. Fallback về giá trị gốc nếu không tìm thấy.
     const categoryNames = [...categories].map((id) => {
       const found = (allCats || []).find((c) => c.id === id);
       return found ? found.name : id;
@@ -334,8 +287,8 @@ export default function PostEditor() {
       categories: categoryNames,
       tags, status: finalStatus, excerpt, content: body, schedule,
       featuredImage,
-      // Send BOTH legacy + new shape so any server version keeps working.
-      // Primary keyword mirrors into legacy `focusKeyword` for old APIs.
+      // Gửi CẢ định dạng cũ + mới để mọi phiên bản server đều hoạt động.
+      // Từ khoá chính được sao chép vào `focusKeyword` cũ cho các API cũ.
       seo: {
         ...seo,
         focusKeyword:   seo.focusKeywords?.[0] ?? '',
@@ -359,8 +312,8 @@ export default function PostEditor() {
     try {
       if (isNew) {
         const res = await postsApi.create(payload);
-  // Stamp "last saved at" + bump revision + record this user as
-          // an editor, so the PostOptionsWidget reflects reality.
+  // Ghi dấu "lần sửa cuối" + tăng số lần sửa đổi + ghi nhận người dùng này là
+          // một editor, để PostOptionsWidget phản ánh đúng thực tế.
           const nowIso = new Date().toISOString();
           const me = currentUser?.displayName || currentUser?.username || currentUser?.email || 'Unknown';
           setLastSavedAt(nowIso);
@@ -377,7 +330,7 @@ export default function PostEditor() {
           navigate(`/posts/${res.post.id}/edit`, { replace: true });
         } else {
           await postsApi.update(id, payload);
-          // Realtime "Lần sửa cuối" — tick the clock the moment Save succeeds.
+          // "Lần sửa cuối" theo thời gian thực — cập nhật đồng hồ ngay khi lưu thành công.
           const nowIso = new Date().toISOString();
           const me = currentUser?.displayName || currentUser?.username || currentUser?.email || 'Unknown';
           setLastSavedAt(nowIso);
@@ -390,7 +343,7 @@ export default function PostEditor() {
             ],
           }));
         showToast(t('postUpdatedSuccess'), 'success');
-        // Reset dirty so navigation guard doesn't fire as we leave.
+        // Reset dirty để guard chống điều hướng không kích hoạt khi rời khỏi trang.
         initialRef.current = null;
         setIsDirty(false);
         navigate('/posts');
@@ -430,7 +383,7 @@ export default function PostEditor() {
       </div>
 
       <div className="grid gap-6" style={{ gridTemplateColumns: 'minmax(0, 1fr) 320px' }}>
-        {/* Main */}
+        {/* Nội dung chính */}
         <div className="flex flex-col gap-5 min-w-0">
           <input
             type="text"
@@ -472,13 +425,13 @@ export default function PostEditor() {
             <Textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} placeholder={t('excerptPlaceholder')} rows={3} />
           </div>
 
-          {/* Rank Math SEO — moved out of the 320px sidebar so it has
-             room to breathe. Sits right under the Excerpt block, full
-             width of the Main column. */}
+          {/* Rank Math SEO — chuyển ra khỏi sidebar 320px để nó có
+             không gian thoáng. Nằm ngay dưới khối Excerpt, đủ
+             chiều rộng của cột Nội dung chính. */}
           <div className="w-full">
             <RankMathSeoBox
-              value={{ ...seo, content, baseDomain: DEFAULT_BASE_DOMAIN }}
-              onChange={(next) => setSeo(next)}
+              value={{ ...seo, content }}
+              onChange={(next) => setSeo((prev) => ({ ...prev, ...next }))}
               baseDomain={DEFAULT_BASE_DOMAIN}
             />
           </div>
@@ -486,8 +439,8 @@ export default function PostEditor() {
 
         {/* Sidebar */}
         <aside className="flex flex-col gap-5">
-          {/* Post options — status, schedule, author, revisions, editors.
-              Sits at the very top so users see post meta first. */}
+          {/* Tùy chọn bài viết — trạng thái, lịch hẹn, tác giả, số lần sửa, editors.
+              Nằm ở vị trí trên cùng để người dùng thấy metadata bài viết trước. */}
           <PostOptionsWidget
             status={status}
             firstPublishedAt={postMeta.firstPublishedAt}
@@ -499,7 +452,7 @@ export default function PostEditor() {
             editors={postMeta.editors}
           />
 
-          {/* Publish */}
+          {/* Xuất bản */}
           <div className="bg-white border border-wp-gray-dark rounded">
             <h3 className="px-4 py-2.5 bg-[#f6f7f7] border-b border-wp-gray-dark text-sm font-semibold m-0">{t('publish')}</h3>
             <div className="p-4 flex flex-col gap-3">
@@ -523,15 +476,15 @@ export default function PostEditor() {
             </div>
           </div>
 
-          {/* Categories — Firebase-powered via <CategorySidebar />
-             (replaces the old hardcoded CATEGORY_LABEL block). */}
+          {/* Categories — dùng Firebase qua <CategorySidebar />
+             (thay thế khối CATEGORY_LABEL hardcode cũ). */}
           <CategorySidebar
             selected={[...categories]}
             onChange={(ids) => setCategories(new Set(ids))}
             db={db}
           />
 
-          {/* Tags */}
+          {/* Thẻ */}
           <div className="bg-white border border-wp-gray-dark rounded">
             <h3 className="px-4 py-2.5 bg-[#f6f7f7] border-b border-wp-gray-dark text-sm font-semibold m-0">{t('tags')}</h3>
             <div className="p-4 flex flex-col gap-2">
@@ -555,7 +508,7 @@ export default function PostEditor() {
             </div>
           </div>
 
-          {/* Featured image */}
+          {/* Ảnh đại diện */}
           <div className="bg-white border border-wp-gray-dark rounded">
             <h3 className="px-4 py-2.5 bg-[#f6f7f7] border-b border-wp-gray-dark text-sm font-semibold m-0">{t('featuredImage')}</h3>
             <div className="p-4 flex flex-col gap-2">
@@ -579,26 +532,15 @@ export default function PostEditor() {
             </div>
           </div>
 
-          {/* Post analytics — tạm ẩn, chưa nối GA4 (xem TODO ở import) */}
+          {/* Thống kê bài viết — tạm ẩn, chưa nối GA4 */}
           <div className="bg-white border border-wp-gray-dark rounded">
             <div className="p-4 text-center">
               <BarChart3 size={16} className="mx-auto mb-1.5 text-gray-400" />
               <p className="text-sm text-ink-muted m-0">Chưa kết nối GA4</p>
             </div>
           </div>
-          {/* TODO Phase 2: nối GA4/Search Console rồi bật lại:
-          <PostAnalyticsWidget
-            seoScore={analytics.seoScore}
-            views={analytics.views}
-            bounceRate={analytics.bounceRate}
-            ctr={analytics.ctr}
-            avgTimeOnPage={analytics.avgTimeOnPage}
-            isLoading={analytics.loading}
-            onRefresh={() => loadAnalytics(id)}
-          />
-          */}
 
-          {/* Trash */}
+          {/* Thùng rác */}
           {!isNew && (
             <div className="bg-white border border-wp-gray-dark rounded">
               <div className="p-4">

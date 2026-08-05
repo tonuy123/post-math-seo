@@ -8,7 +8,7 @@
 
 
 /**
- * Slug helper — mirrors legacy `generateSlug()`.
+ * Helper tạo slug — mirror lại `generateSlug()` bản cũ.
  */
 function generateSlug(text) {
   if (!text) return '';

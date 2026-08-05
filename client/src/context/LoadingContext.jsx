@@ -1,14 +1,14 @@
 /**
- * Loading overlay context (replaces legacy `showLoading(true/false)`).
+ * Context overlay tải dữ liệu (thay thế `showLoading(true/false)` cũ).
  *
- * Implementation notes:
- *  - Each `showLoading()` call returns a token; callers pass it to
- *    `hideLoading(token)`. If the token doesn't match the most recent
- *    show, the hide is a no-op. This keeps the overlay balanced even when
- *    React StrictMode double-invokes effects or when components unmount
- *    mid-request.
- *  - A hard 8s safety net hides the overlay if a token is never released.
- *  - The overlay is rendered in a portal so its z-index is consistent.
+ * Ghi chú triển khai:
+ *  - Mỗi lần gọi `showLoading()` trả về một token; caller truyền token đó vào
+ *    `hideLoading(token)`. Nếu token không khớp với lần show gần nhất,
+ *    việc hide là no-op. Điều này giữ overlay cân bằng ngay cả khi
+ *    React StrictMode gọi kép effects hoặc khi component bị tháo gỡ
+ *    giữa chừng yêu cầu.
+ *  - Lưới an toàn cố định 8 giây sẽ ẩn overlay nếu token không bao giờ được giải phóng.
+ *  - Overlay được render trong portal để z-index của nó nhất quán.
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -32,7 +32,7 @@ export function LoadingProvider({ children }) {
     const token = latestRef.current;
     if (!active) setActive(true);
 
-    // Safety net: if the caller forgets to release, drop the overlay.
+    // Lưới an toàn: nếu caller quên giải phóng, hãy ẩn overlay.
     if (typeof window !== 'undefined') {
       setTimeout(() => {
         if (latestRef.current === token && counterRef.current > 0) {
@@ -45,7 +45,7 @@ export function LoadingProvider({ children }) {
   }, [active]);
 
   const hideLoading = useCallback((token) => {
-    // Only honor the hide if it matches the latest outstanding show.
+    // Chỉ thực hiện hide nếu nó khớp với lần show đang chờ gần nhất.
     if (typeof token === 'number' && token !== latestRef.current) return;
     counterRef.current = Math.max(0, counterRef.current - 1);
     if (counterRef.current === 0) setActive(false);

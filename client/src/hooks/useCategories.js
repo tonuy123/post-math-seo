@@ -1,17 +1,17 @@
 /**
- * useCategories — real-time subscription to the `categories` collection.
+ * useCategories — đăng ký nhận dữ liệu thời gian thực từ collection `categories`.
  *
- * Returns: { categories, loading, error }
+ * Trả về: { categories, loading, error }
  *   categories: Array<{ id, name, postCount?, createdAt? }>
  *   loading   : boolean
  *   error     : Error | null
  *
- * Internally mirrors the listener used by <CategorySidebar /> so the
- * PostsList filter dropdown and the editor sidebar stay perfectly in sync
- * with whatever categories the user creates / renames inside Firebase.
+ * Nội bộ sao chép listener mà <CategorySidebar /> dùng để
+ * dropdown lọc của PostsList và sidebar editor luôn đồng bộ hoàn hảo
+ * với mọi category mà người dùng tạo / đổi tên trong Firebase.
  *
- * Lives at /hooks/useCategories.js — co-located with usePosts.js for easy
- * discovery.
+ * Nằm tại /hooks/useCategories.js — đặt gần usePosts.js để dễ
+ * tìm thấy.
  */
 import { useEffect, useState } from 'react';
 import {
@@ -25,17 +25,17 @@ export function useCategories({ sortBy = 'name' } = {}) {
   const [error,      setError]      = useState(null);
 
   useEffect(() => {
-    // Mirror CategorySidebar's null-safe behaviour. If Web SDK isn't
-    // configured yet, the consumer can fall back to a hardcoded list.
+    // Sao chép hành vi null-safe của CategorySidebar. Nếu Web SDK chưa
+    // được cấu hình, consumer có thể fallback về danh sách hardcode.
     if (!db) {
       setLoading(false);
       return undefined;
     }
 
     const colRef = collection(db, 'categories');
-    // Sort alphabetically by `name` so dropdown options appear in the
-    // order users expect ("Công Nghệ" before "Marketing"). For
-    // popularity sorts the consumer can re-sort the returned array.
+    // Sắp xếp theo bảng chữ cái theo `name` để các lựa chọn dropdown xuất hiện
+    // theo thứ tự người dùng mong đợi ("Công Nghệ" trước "Marketing"). Với
+    // kiểu sắp xếp theo mức phổ biến, consumer có thể tự sắp xếp lại mảng trả về.
     const q = sortBy === 'popular'
       ? query(colRef, orderBy('postCount', 'desc'))
       : (sortBy === 'recent'

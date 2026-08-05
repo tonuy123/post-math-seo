@@ -1,6 +1,6 @@
 /**
- * Global error handler
- * Catches anything passed via next(err) or thrown in async handlers.
+ * Handler lỗi toàn cục
+ * Bắt mọi lỗi truyền qua next(err) hoặc ném ra trong các handler async.
  */
 module.exports = function errorHandler(err, req, res, next) {
   console.error('[error]', err);

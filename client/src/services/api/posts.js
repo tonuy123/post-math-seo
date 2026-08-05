@@ -1,7 +1,7 @@
 import { api } from './client';
 
-// Backend response wrapper: { success, message, data: {...} }.
-// `r.data` is the axios body, so `r.data.data` is the payload.
+// Vỏ bọc phản hồi của backend: { success, message, data: {...} }.
+// `r.data` là body của axios, nên `r.data.data` mới là payload.
 const body = (r) => r?.data?.data;
 
 export const postsApi = {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-// TailwindCSS-based custom confirm dialog matching the screenshot style
+// Dialog xác nhận tuỳ chỉnh dùng TailwindCSS theo đúng kiểu ảnh chụp màn hình
 export default function ConfirmDialog({ open, title = window.location.host + ' says', message, onConfirm, onCancel }) {
   if (!open) return null;
 

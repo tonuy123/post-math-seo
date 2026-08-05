@@ -2,37 +2,37 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, Users, User, Calendar, Clock, FileEdit } from 'lucide-react';
 
 /**
- * <PostOptionsWidget /> — "Tùy chọn bài viết" widget, sits at the top of
- * the right sidebar. ALL data comes from real sources (no fake values).
+ * <PostOptionsWidget /> — widget "Tùy chọn bài viết", nằm ở đầu thanh bên
+ * phải. MỌI dữ liệu đều đến từ nguồn thật (không có giá trị giả).
  *
- * Layout
+ * Bố cục
  *   ┌────────────────────────────────────────┐
  *   │  Tùy chọn bài viết                     │
  *   │                                        │
- *   │  [STATUS BADGE]    Trạng thái         │
+ *   │  [HUY HIỆU TRẠNG THÁI]  Trạng thái    │
  *   │  Ngày xuất bản đầu tiên: …            │
  *   │                                        │
  *   │  ─────────────────────────────────     │
  *   │  Người tạo: <author>                   │
  *   │  Số lần chỉnh sửa: N                  │
- *   │  Lần sửa cuối: <relative time>         │
+ *   │  Lần sửa cuối: <thời gian tương đối>  │
  *   │                                        │
  *   │  ─────────────────────────────────     │
  *   │  Người đang sửa: <currentUser>         │
  *   │  Đã chỉnh sửa bởi A, B, C  [Xem thêm]│
- *   │   ↓ expanded list (click Ẩn to close)  │
+ *   │   ↓ danh sách mở rộng (bấm Ẩn để đóng) │
  *   └────────────────────────────────────────┘
  *
- * Props (all from real data):
+ * Props (tất cả từ dữ liệu thật):
  *   - status           : 'draft' | 'published' | 'private' | 'scheduled' | 'trashed'
- *   - firstPublishedAt : ISO string | null   (from post doc)
- *   - schedule         : ISO string | null   (future publish time)
+ *   - firstPublishedAt : chuỗi ISO | null   (từ post doc)
+ *   - schedule         : chuỗi ISO | null   (thời gian xuất bản trong tương lai)
  *   - authorName       : string              (post.author.displayName)
  *   - revisionCount    : number              (post.revisionCount)
- *   - lastSavedAt      : ISO string | null   (updated on every Save click)
- *   - currentUserName  : string              (logged-in user.displayName)
+ *   - lastSavedAt      : chuỗi ISO | null   (cập nhật mỗi lần bấm Lưu)
+ *   - currentUserName  : string              (user.displayName đã đăng nhập)
  *   - editors          : Array<{ displayName, editedAt }>
- *                        full history of who edited the post
+ *                        toàn bộ lịch sử ai đã chỉnh sửa bài viết
  */
 
 const STATUS_META = {
@@ -43,7 +43,7 @@ const STATUS_META = {
   trashed:   { label: 'Thùng rác',   bg: 'bg-red-100',    text: 'text-red-700'    },
 };
 
-/* ── Helpers ──────────────────────────────────────────────────────── */
+/* ── Các hàm trợ giúp ────────────────────────────────────────────────── */
 
 const RELATIVE = new Intl.RelativeTimeFormat('vi-VN', { numeric: 'auto' });
 const ABS_DATE = new Intl.DateTimeFormat('vi-VN', {
@@ -71,7 +71,7 @@ function fmtRelative(iso) {
   return RELATIVE.format(Math.round(diffSec / (86400 * 7)),                   'week');
 }
 
-/* Tiny hook: re-render once a minute so "Vừa xong / 2 phút trước" stays fresh */
+/* Hook nhỏ: re-render mỗi phút để "Vừa xong / 2 phút trước" luôn mới */
 function useMinuteTick() {
   const [, setN] = useState(0);
   useEffect(() => {
@@ -80,7 +80,7 @@ function useMinuteTick() {
   }, []);
 }
 
-/* ── Sub-component: a single meta row ─────────────────────────────── */
+/* ── Component con: một hàng meta ───────────────────────────────────── */
 
 function MetaRow({ Icon, label, value }) {
   return (
@@ -96,7 +96,7 @@ function MetaRow({ Icon, label, value }) {
   );
 }
 
-/* ── Main widget ──────────────────────────────────────────────────── */
+/* ── Widget chính ────────────────────────────────────────────────────── */
 
 export function PostOptionsWidget({
   status,
@@ -111,7 +111,7 @@ export function PostOptionsWidget({
   const [expanded, setExpanded] = useState(false);
   useMinuteTick();
 
-  /* ── Section 1 — Status & schedule ─────────────────────────────── */
+  /* ── Phần 1 — Trạng thái & lịch xuất bản ─────────────────────────────── */
   const meta = STATUS_META[status] || STATUS_META.draft;
   const firstPublishLine = firstPublishedAt
     ? fmtDate(firstPublishedAt)
@@ -119,8 +119,8 @@ export function PostOptionsWidget({
       ? `${fmtDate(schedule)} (đã lên lịch)`
       : 'Chưa xuất bản';
 
-  /* ── Section 3 — Editors list (with collapse / expand) ──────────── */
-  // Unique by displayName, sorted by editedAt desc.
+  /* ── Phần 3 — Danh sách người chỉnh sửa (thu gọn / mở rộng) ──────────── */
+  // Duy nhất theo displayName, sắp xếp theo editedAt giảm dần.
   const uniqueEditors = (() => {
     const seen = new Map();
     for (const e of editors) {
@@ -141,13 +141,13 @@ export function PostOptionsWidget({
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col gap-4">
 
-      {/* ─── Title ──────────────────────────────────────────────── */}
+      {/* ─── Tiêu đề ──────────────────────────────────────────────── */}
       <h3 className="text-sm font-semibold text-ink-primary m-0 flex items-center gap-1.5">
         <FileEdit size={14} className="text-blue-500" />
         Tùy chọn bài viết
       </h3>
 
-      {/* ─── Section 1: Status + first publish schedule ─────────── */}
+      {/* ─── Phần 1: Trạng thái + lịch xuất bản đầu tiên ──────────── */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-gray-500">Trạng thái</span>
@@ -168,7 +168,7 @@ export function PostOptionsWidget({
 
       <hr className="border-gray-100" />
 
-      {/* ─── Section 2: Author / revisions / last save ──────────── */}
+      {/* ─── Phần 2: Người tạo / số lần sửa / lần lưu cuối ──────────── */}
       <div className="flex flex-col gap-1.5">
         <MetaRow Icon={User}    label="Người tạo"      value={authorName || '—'} />
         <MetaRow Icon={FileEdit} label="Số lần sửa"    value={revisionCount ?? 0} />
@@ -177,7 +177,7 @@ export function PostOptionsWidget({
 
       <hr className="border-gray-100" />
 
-      {/* ─── Section 3: Editors ─────────────────────────────────── */}
+      {/* ─── Phần 3: Người chỉnh sửa ───────────────────────────────── */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="inline-flex items-center gap-1.5 text-gray-500">
@@ -189,7 +189,7 @@ export function PostOptionsWidget({
           </span>
         </div>
 
-        {/* Collapsed state — single line + toggle button */}
+        {/* Trạng thái thu gọn — một dòng + nút chuyển đổi */}
         {!expanded && (
           <div className="flex items-start justify-between gap-2 text-xs">
             <div className="text-gray-500 leading-relaxed min-w-0">
@@ -221,7 +221,7 @@ export function PostOptionsWidget({
           </div>
         )}
 
-        {/* Expanded state — full list */}
+        {/* Trạng thái mở rộng — danh sách đầy đủ */}
         {expanded && (
           <div className="flex flex-col gap-1.5">
             <div className="text-[11px] uppercase tracking-wider text-gray-400 flex items-center gap-1.5">

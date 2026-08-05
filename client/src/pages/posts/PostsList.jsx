@@ -19,7 +19,7 @@ import { postsApi } from '../../services/api/posts';
 import { POSTS_PER_PAGE } from '../../utils/constants';
 import { formatDate } from '../../utils/helpers';
 
-// Local filter list with dedicated icons. Order: All → Published → Drafts → Private → Trash.
+// Danh sách bộ lọc cục bộ với icon riêng. Thứ tự: Tất cả → Đã xuất bản → Bản nháp → Riêng tư → Thùng rác.
 const FILTERS = [
   { key: 'all',       labelKey: 'allPosts',   Icon: Files,    active: 'bg-wp-blue text-white',   idle: 'text-wp-blue bg-wp-blue/10 hover:bg-wp-blue/20' },
   { key: 'published', labelKey: 'published',  Icon: Send,     active: 'bg-wp-green text-white',  idle: 'text-wp-green bg-wp-green/10 hover:bg-wp-green/20' },
@@ -28,7 +28,7 @@ const FILTERS = [
   { key: 'trashed',   labelKey: 'trash',      Icon: Trash2,   active: 'bg-gray-600 text-white',  idle: 'text-gray-600 bg-gray-500/10 hover:bg-gray-500/20' },
 ];
 
-// Counter pills shown next to each tab.
+// Các nút đếm số lượng hiển thị bên cạnh mỗi tab.
 function FilterTabs({ value, onChange, counts }) {
   return (
     <nav className="flex flex-wrap items-center gap-2 px-5 py-3 bg-white rounded-t border-b-2 border-wp-gray shadow-[0_4px_6px_-4px_rgba(0,0,0,0.08)] relative z-[1]">
@@ -70,13 +70,13 @@ export default function PostsList() {
   const [search, setSearch]         = useState('');
   const [category, setCategory]     = useState('');
   const [author, setAuthor]         = useState('');
-  // Selection lives as a plain string[] of post IDs. The checkbox column
-  // is ALWAYS visible — no "selection mode" toggle. Toggling a row adds
-  // or removes its id; the header checkbox reflects bulk state.
+  // Lựa chọn lưu dưới dạng string[] đơn giản gồm các ID bài viết. Cột checkbox
+  // LUÔN hiển thị — không có nút chuyển "chế độ chọn". Tích/bỏ tích một hàng sẽ thêm
+  // hoặc xoá id của nó; checkbox ở header phản ánh trạng thái hàng loạt.
   const [selectedPosts, setSelectedPosts] = useState([]);
   const [page, setPage]             = useState(1);
 
-  // -------- Filtering --------
+  // -------- Lọc --------
   const filtered = useMemo(() => {
     let list = posts ?? [];
     if (filter === 'all')      list = list.filter(p => p.status !== 'trashed');
@@ -120,9 +120,9 @@ export default function PostsList() {
     [posts]
   );
 
-  // -------- Selection helpers (array-based) --------
-  // Header checkbox is "checked" when every currently-displayed row is
-  // also in the selection. If there's nothing to show, it's unchecked.
+  // -------- Hỗ trợ lựa chọn (dựa trên mảng) --------
+  // Checkbox ở header "được tích" khi mọi hàng đang hiển thị đều
+  // nằm trong lựa chọn. Nếu không có gì để hiển thị, nó không được tích.
   const allOnPageChecked = pageItems.length > 0
     && pageItems.every(p => selectedPosts.includes(p.id));
   const someOnPageChecked = pageItems.some(p => selectedPosts.includes(p.id));
@@ -132,9 +132,9 @@ export default function PostsList() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
-  // Header onChange — per spec:
-  //   • checking  → push every visible row id into selectedPosts
-  //   • unchecking → clear the array
+  // onChange của header — theo spec:
+  //   • tích  → đẩy id của mọi hàng đang hiển thị vào selectedPosts
+  //   • bỏ tích → xoá sạch mảng
   function toggleAllVisible(e) {
     if (e.target.checked) {
       setSelectedPosts((prev) => {
@@ -153,7 +153,7 @@ export default function PostsList() {
     setSelectedPosts([]);
   }
 
-  // -------- Bulk actions --------
+  // -------- Thao tác hàng loạt --------
   async function doBulk(action) {
     const ids = selectedPosts;
     if (!ids.length) return;
@@ -177,12 +177,12 @@ export default function PostsList() {
     <section className="bg-white border border-wp-gray rounded shadow-sm overflow-hidden">
       <FilterTabs value={filter} onChange={changeFilter} counts={counts} />
 
-      {/* Toolbar */}
+      {/* Thanh công cụ */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 bg-white border-b-2 border-wp-gray">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Category / Author filters — always visible, including the trash tab.
-              Categories come from the Firestore `categories` collection (real-time)
-              so the dropdown reflects exactly what users have created in the editor. */}
+          {/* Bộ lọc Category / Author — luôn hiển thị, kể cả ở tab thùng rác.
+              Categories đến từ collection `categories` của Firestore (thời gian thực)
+              nên dropdown phản ánh chính xác những gì người dùng đã tạo trong editor. */}
           <Select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -217,18 +217,18 @@ export default function PostsList() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           {/*
-            Requirement #2 — Embossed thead.
-            - bg-gray-200 instead of the old bg-wp-gray
-            - relative + z-10 + shadow-md so the header floats above
-              the post rows below
-            - font-bold + uppercase + tracking-wider for the column labels
+            Yêu cầu #2 — thead nổi khối.
+            - bg-gray-200 thay cho bg-wp-gray cũ
+            - relative + z-10 + shadow-md để header nổi phía trên
+              các hàng bài viết bên dưới
+            - font-bold + uppercase + tracking-wider cho nhãn cột
           */}
           <thead className="bg-gray-200 relative z-10 shadow-md">
             <tr className="text-ink-primary uppercase text-xs tracking-wider">
-              {/* Header checkbox — ALWAYS visible. Checked when every
-                 currently-displayed row is in selectedPosts. Clicking
-                 pushes all visible ids into the array; unchecking clears
-                 the array. */}
+              {/* Checkbox header — LUÔN hiển thị. Được tích khi mọi hàng
+                 đang hiển thị đều nằm trong selectedPosts. Tích sẽ
+                 đẩy mọi id đang hiển thị vào mảng; bỏ tích sẽ xoá sạch
+                 mảng. */}
               <th className="px-4 py-3 text-left w-10">
                 <input
                   type="checkbox"
@@ -369,7 +369,7 @@ export default function PostsList() {
         </table>
       </div>
 
-      {/* Bulk action bar */}
+      {/* Thanh thao tác hàng loạt */}
       {selectedPosts.length > 0 && (
         <div className="mx-5 mb-3 mt-3 flex items-center gap-3 px-4 py-3 rounded-lg border border-wp-blue/40 bg-wp-blue/10 text-ink-primary shadow-sm">
           <div className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-wp-blue text-white">
@@ -395,7 +395,7 @@ export default function PostsList() {
             </Button>
           )}
           {/*
-            Requirement #4 — Deselect button styled as a solid blue chip
+            Yêu cầu #4 — Nút bỏ chọn được tạo kiểu như viên chip xanh đặc
             (bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded).
           */}
           <button

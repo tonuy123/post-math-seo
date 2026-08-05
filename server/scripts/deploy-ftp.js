@@ -29,7 +29,7 @@ function parseArgs() {
   return args;
 }
 
-/** Walk local directory, upload from to to. */
+/** Duyệt qua thư mục local, upload từng file từ local lên remote. */
 async function uploadDir(client, localDir, remoteDir) {
   const entries = fs.readdirSync(localDir, { withFileTypes: true });
   for (const entry of entries) {
@@ -72,7 +72,7 @@ async function main() {
 
     if (clean) {
       for (const p of ['blog', 'assets/blog', 'sitemap.xml', 'robots.txt']) {
-        try { await client.removeDir(`${root}/${p}`); console.log(`[ftp] removed ${root}/${p}`); } catch { /* not exists */ }
+        try { await client.removeDir(`${root}/${p}`); console.log(`[ftp] removed ${root}/${p}`); } catch { /* không tồn tại */ }
       }
     }
 

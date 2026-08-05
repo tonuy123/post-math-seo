@@ -1,6 +1,6 @@
 /**
- * Slug generator — mirrors the legacy `generateSlug()` function.
- * Example: "Hello World!" -> "hello-world"
+ * Trình tạo slug — sao chép từ hàm `generateSlug()` cũ.
+ * Ví dụ: "Hello World!" -> "hello-world"
  */
 export function generateSlug(text) {
   if (!text) return '';
@@ -13,8 +13,8 @@ export function generateSlug(text) {
 }
 
 /**
- * Format a date / Firestore Timestamp for table display.
- * Mirrors `formatDate()` from the legacy code.
+ * Định dạng ngày / Firestore Timestamp để hiển thị trên bảng.
+ * Sao chép từ `formatDate()` trong code cũ.
  */
 export function formatDate(date, locale = 'en-US') {
   if (!date) return '-';
@@ -24,8 +24,8 @@ export function formatDate(date, locale = 'en-US') {
 }
 
 /**
- * Read a File and return its Base64 data URL.
- * Used for featured images and avatars (legacy used FileReader API).
+ * Đọc một File và trả về Base64 data URL của nó.
+ * Dùng cho ảnh đại diện và avatar (bản cũ dùng FileReader API).
  */
 export function fileToBase64(file) {
   return new Promise((resolve, reject) => {

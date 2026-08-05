@@ -40,14 +40,14 @@ export function useUnsavedChangesGuard(isDirty, message) {
     return () => window.removeEventListener('beforeunload', handler);
   }, [promptText]);
 
-  // 2) SPA route change — patch history.pushState/replaceState + lắng nghe popstate.
+  // 2) Chuyển route trong SPA — patch history.pushState/replaceState + lắng nghe popstate.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
     const origPush = window.history.pushState.bind(window.history);
     const origReplace = window.history.replaceState.bind(window.history);
 
-    // synchronous fallback using native confirm
+    // fallback đồng bộ dùng confirm gốc của trình duyệt
     function confirmLeaveSync() {
       // eslint-disable-next-line no-alert
       return window.confirm(promptText);
@@ -55,16 +55,16 @@ export function useUnsavedChangesGuard(isDirty, message) {
 
     function guardedPush(state, title, url) {
       if (!dirtyRef.current) return origPush(state, title, url);
-      // If custom async dialog is not present, fallback to sync confirm
+      // Nếu không có dialog tuỳ chỉnh bất đồng bộ, fallback về confirm đồng bộ
       if (!window.showUnsavedChangesDialog) {
-        if (!confirmLeaveSync()) return; // user cancel — giữ nguyên URL cũ
+        if (!confirmLeaveSync()) return; // người dùng huỷ — giữ nguyên URL cũ
         dirtyRef.current = false;
         blockedUrlRef.current = null;
         return origPush(state, title, url);
       }
-      // If app code calls history.pushState while dirty and a custom dialog exists,
-      // we cannot synchronously await it here. Fall back to native confirm so pushState
-      // callers are not blocked unexpectedly.
+      // Nếu code của app gọi history.pushState khi đang dirty và có custom dialog,
+      // ta không thể chờ đợi nó một cách đồng bộ ở đây. Fallback về confirm gốc để
+      // các caller pushState không bị chặn bất ngờ.
       if (!confirmLeaveSync()) return;
       dirtyRef.current = false;
       blockedUrlRef.current = null;
@@ -88,13 +88,13 @@ export function useUnsavedChangesGuard(isDirty, message) {
       }
 
       if (window.showUnsavedChangesDialog) {
-        // ask using async custom dialog; when resolved perform action
+        // hỏi bằng custom dialog bất đồng bộ; khi hoàn tất thì thực hiện hành động
         window.showUnsavedChangesDialog(promptText).then((ok) => {
           if (!ok) {
             if (blockedUrlRef.current) origPush(null, '', blockedUrlRef.current);
             return;
           }
-          // user OK → cho phép rời
+          // người dùng OK → cho phép rời
           dirtyRef.current = false;
           window.history.pushState = origPush;
           window.history.back();
@@ -102,11 +102,11 @@ export function useUnsavedChangesGuard(isDirty, message) {
         return;
       }
 
-      // fallback to synchronous confirm
+      // fallback về confirm đồng bộ
       if (!confirmLeaveSync()) {
         if (blockedUrlRef.current) origPush(null, '', blockedUrlRef.current);
       } else {
-        // user OK → cho phép rời
+        // người dùng OK → cho phép rời
         dirtyRef.current = false;
         window.history.pushState = origPush;
         window.history.back();
@@ -119,7 +119,7 @@ export function useUnsavedChangesGuard(isDirty, message) {
       if (!a) return;
       const href = a.getAttribute('href');
       if (!href || href.startsWith('#')) return;
-      // Chỉ can thiệp với internal navigation
+      // Chỉ can thiệp với điều hướng nội bộ
       try {
         const target = new URL(href, window.location.origin);
         if (target.origin !== window.location.origin) return;
@@ -128,7 +128,7 @@ export function useUnsavedChangesGuard(isDirty, message) {
       e.stopPropagation();
 
       if (window.showUnsavedChangesDialog) {
-        // async custom dialog
+        // custom dialog bất đồng bộ
         window.showUnsavedChangesDialog(promptText).then((ok) => {
           if (!ok) return;
           dirtyRef.current = false;
@@ -137,7 +137,7 @@ export function useUnsavedChangesGuard(isDirty, message) {
         return;
       }
 
-      // fallback to sync confirm
+      // fallback về confirm đồng bộ
       if (!confirmLeaveSync()) return;
       dirtyRef.current = false;
       window.location.assign(href);

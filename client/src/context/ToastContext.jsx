@@ -1,6 +1,6 @@
 /**
- * Toast context — replaces the legacy `showToast()` helper.
- * Usage:
+ * Toast context — thay thế hàm trợ giúp `showToast()` cũ.
+ * Cách dùng:
  *   const { showToast } = useToast();
  *   showToast('Saved!', 'success');
  */

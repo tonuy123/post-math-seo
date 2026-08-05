@@ -1,9 +1,9 @@
 /**
- * Auth context — owns the JWT and current user profile.
+ * Auth context — quản lý JWT và hồ sơ người dùng hiện tại.
  *
- * On boot:
- *  - If a token is in localStorage, we call /auth/me to refresh the user.
- *  - Otherwise we stay logged-out.
+ * Khi khởi động:
+ *  - Nếu có token trong localStorage, ta gọi /auth/me để làm mới thông tin người dùng.
+ *  - Ngược lại ta giữ trạng thái chưa đăng nhập.
  */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { authApi } from '../services/api/users';
@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
       return null;
     }
     try {
-      // authApi.me() returns the unwrapped payload: { token, user }
+      // authApi.me() trả về payload đã bóc: { token, user }
       const payload = await authApi.me();
       const fetchedUser = payload?.user;
 
@@ -55,7 +55,7 @@ export function AuthProvider({ children }) {
     refresh();
   }, [refresh]);
 
-  // Subscribe to the global 401 logout event broadcast by api/client.js
+  // Đăng ký nhận sự kiện đăng xuất 401 toàn cục do api/client.js phát
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const onForcedLogout = () => {
@@ -88,7 +88,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout();
     } catch (e) {
-      // Server-side logout is best-effort; always clear local session.
+      // Đăng xuất phía server chỉ mang tính cố gắng; luôn xoá session cục bộ.
       // eslint-disable-next-line no-console
       console.warn('logout request failed:', e?.message);
     }

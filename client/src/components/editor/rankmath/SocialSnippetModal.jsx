@@ -3,15 +3,15 @@ import { X, ImagePlus, Facebook, Upload } from 'lucide-react';
 import { Input, Textarea, Label } from '../../ui/Input';
 
 /**
- * <SocialSnippetModal /> — Facebook social preview editor.
+ * <SocialSnippetModal /> — trình chỉnh sửa bản xem trước mạng xã hội Facebook.
  *
- * Mirrors the "Social Preview" modal in WordPress Rank Math:
- *   • Facebook-only tab (Twitter removed for now).
- *   • Preview card styled like a real FB post:
- *       - round gray avatar + author + timestamp
- *       - large image area with placeholder text
- *       - OG-style link info (uppercase domain, bold title, gray desc)
- *   • Inputs below: image upload, social title, social description.
+ * Phản chiếu modal "Xem trước mạng xã hội" trong WordPress Rank Math:
+ *   • Chỉ có tab Facebook (Twitter đã bỏ tạm thời).
+ *   • Thẻ xem trước được tạo kiểu như một bài đăng FB thật:
+ *       - avatar xám tròn + tác giả + thời gian
+ *       - vùng ảnh lớn có văn bản chỗ trống
+ *       - thông tin liên kết kiểu OG (tên miền viết hoa, tiêu đề đậm, mô tả xám)
+ *   • Các input bên dưới: tải ảnh lên, tiêu đề xã hội, mô tả xã hội.
  *
  * Props
  *   - isOpen   : boolean
@@ -19,18 +19,18 @@ import { Input, Textarea, Label } from '../../ui/Input';
  *   - onSave   : (next) => void
  *   - value    : {
  *       socialTitle, socialDescription, socialImage,
- *       baseDomain  (for the preview domain line)
+ *       baseDomain  (dùng cho dòng tên miền xem trước)
  *     }
  *
- * Owns a LOCAL DRAFT so the user can cancel without polluting parent.
- * On Save, commits back via onSave.
+ * Sở hữu BẢN NHÁP CỤC BỘ (LOCAL DRAFT) để người dùng có thể huỷ mà không
+ * làm bẩn component chủ. Khi Lưu, commit ngược qua onSave.
  */
 
 const NETWORK_TABS = [
   { id: 'facebook', label: 'Facebook', Icon: Facebook },
 ];
 
-/* ── Facebook-styled preview card ─────────────────────────────────── */
+/* ── Thẻ xem trước kiểu Facebook ─────────────────────────────────── */
 
 function FacebookPreviewCard({
   domain,
@@ -40,7 +40,7 @@ function FacebookPreviewCard({
 }) {
   return (
     <div className="border border-gray-200 rounded-md bg-white overflow-hidden">
-      {/* Header — avatar + author + time */}
+      {/* Đầu thẻ — avatar + tác giả + thời gian */}
       <div className="flex items-center gap-2 px-3 py-2.5">
         <div className="w-10 h-10 rounded-full bg-gray-300 shrink-0" aria-hidden="true" />
         <div className="flex flex-col leading-tight">
@@ -49,7 +49,7 @@ function FacebookPreviewCard({
         </div>
       </div>
 
-      {/* Image area — 1200x630 placeholder */}
+      {/* Vùng ảnh — chỗ trống 1200x630 */}
       <div className="relative aspect-video bg-gray-700 flex items-center justify-center">
         {imageUrl ? (
           <img
@@ -64,7 +64,7 @@ function FacebookPreviewCard({
         )}
       </div>
 
-      {/* OG-style link info */}
+      {/* Thông tin liên kết kiểu OG */}
       <div className="bg-gray-50 border-t border-gray-200 px-3 py-2.5">
         <div className="text-[11px] uppercase tracking-wider text-gray-500 truncate">
           {(domain || 'QUOCTEVIET.EDU.VN').toUpperCase()}
@@ -80,7 +80,7 @@ function FacebookPreviewCard({
   );
 }
 
-/* ── Main modal ───────────────────────────────────────────────────── */
+/* ── Modal chính ───────────────────────────────────────────────────── */
 
 export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
   const [draft, setDraft] = useState({
@@ -91,7 +91,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
   });
   const fileInputRef = useRef(null);
 
-  // Sync draft on open.
+  // Đồng bộ bản nháp khi mở.
   useEffect(() => {
     if (isOpen) {
       setDraft({
@@ -103,7 +103,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
     }
   }, [isOpen, value]);
 
-  // ESC to close.
+  // ESC để đóng.
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -137,7 +137,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
     >
       <div className="bg-white w-full max-w-3xl rounded-md shadow-xl max-h-[90vh] overflow-y-auto">
 
-        {/* ── Header ──────────────────────────────────────────────── */}
+        {/* ── Đầu trang ──────────────────────────────────────────────── */}
         <header className="flex items-center justify-between px-5 py-3 border-b border-gray-200 sticky top-0 bg-white z-10">
           <h3 id="social-modal-title" className="text-sm font-semibold text-gray-800">
             Xem trước trình chỉnh sửa đoạn trích
@@ -152,7 +152,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
           </button>
         </header>
 
-        {/* ── Sticky Network Tabs ────────────────────────────────── */}
+        {/* ── Các tab mạng xã hội dính (sticky) ───────────────────── */}
         <div className="sticky top-[49px] z-10 bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-center gap-2">
           {NETWORK_TABS.map(({ id, label, Icon }) => (
             <button
@@ -168,7 +168,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
 
         <form onSubmit={handleSave} className="flex flex-col">
 
-          {/* ── Live Preview Card ─────────────────────────────────── */}
+          {/* ── Thẻ xem trước trực tiếp ───────────────────────────────── */}
           <div className="px-5 pt-5">
             <FacebookPreviewCard
               domain={value?.baseDomain}
@@ -178,10 +178,10 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
             />
           </div>
 
-          {/* ── Inputs Section ────────────────────────────────────── */}
+          {/* ── Phần các input ───────────────────────────────────────── */}
           <div className="p-5 flex flex-col gap-5">
 
-            {/* Image upload */}
+            {/* Tải ảnh lên */}
             <div>
               <Label>Thêm hình ảnh</Label>
               <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
               </p>
             </div>
 
-            {/* Social title */}
+            {/* Tiêu đề xã hội */}
             <div>
               <Label htmlFor="social-title">Tiêu đề SEO</Label>
               <Input
@@ -226,7 +226,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
               />
             </div>
 
-            {/* Social description */}
+            {/* Mô tả xã hội */}
             <div>
               <Label htmlFor="social-desc">Thẻ mô tả</Label>
               <Textarea
@@ -239,7 +239,7 @@ export function SocialSnippetModal({ isOpen, onClose, onSave, value }) {
             </div>
           </div>
 
-          {/* ── Footer ────────────────────────────────────────────── */}
+          {/* ── Chân trang ───────────────────────────────────────────── */}
           <footer className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 sticky bottom-0">
             <button
               type="button"

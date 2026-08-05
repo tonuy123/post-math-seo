@@ -1,12 +1,12 @@
 /**
  * ============================================================================
- *  CMS Server Entry Point
+ *  Điểm vào của CMS Server
  * ============================================================================
- *  - Loads environment variables
- *  - Initializes Express app
- *  - Initializes Firebase Admin SDK
- *  - Seeds default admin user (idempotent)
- *  - Mounts /health + /api/v1
+ *  - Nạp các biến môi trường
+ *  - Khởi tạo Express app
+ *  - Khởi tạo Firebase Admin SDK
+ *  - Seed admin user mặc định (idempotent)
+ *  - Gắn /health + /api/v1
  * ============================================================================
  */
 
@@ -40,14 +40,14 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '2mb' })); // Base64 images can be large
+app.use(express.json({ limit: '2mb' })); // Ảnh Base64 có thể rất lớn
 app.use(express.urlencoded({ extended: true }));
 
 // -------------------- Bootstrap --------------------
 const firebaseAdmin = initializeFirebase();
 
-// Schedule a one-time default-admin seed + initial trash auto-clean.
-// These are best-effort; failures here do not crash the server.
+// Lên lịch seed admin mặc định một lần + tự dọn thùng rác ban đầu.
+// Đây là các bước best-effort; lỗi ở đây không làm sập server.
 if (firebaseAdmin) {
   (async () => {
     try {
@@ -79,12 +79,12 @@ app.get('/health', (req, res) => {
 
 app.use('/api/v1', apiRouter);
 
-// 404 handler
+// Handler 404
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found', path: req.originalUrl });
 });
 
-// Global error handler (must remain last)
+// Handler lỗi toàn cục (phải giữ ở cuối)
 app.use(errorHandler);
 
 app.listen(PORT, () => {

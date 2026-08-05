@@ -1,6 +1,6 @@
 /**
- * Centralized constants — mirror of `server/config/constants.js` for the
- * client. Keep both files in sync.
+ * Các hằng số tập trung — bản sao của `server/config/constants.js` cho
+ * client. Giữ cả hai file đồng bộ.
  */
 
 export const ROLES = Object.freeze({

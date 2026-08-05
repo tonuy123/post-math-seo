@@ -1,6 +1,6 @@
 /**
- * LocalStorage-backed JWT store.
- * Keeps token + cached user profile available across reloads (legacy behavior).
+ * Kho JWT dựa trên LocalStorage.
+ * Giữ token + hồ sơ người dùng đã cache qua các lần tải lại (hành vi cũ).
  */
 const TOKEN_KEY = 'cms_token';
 const USER_KEY  = 'cms_user';

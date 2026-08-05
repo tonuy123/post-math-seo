@@ -1,14 +1,14 @@
 /**
  * scripts/wipe-users.js
  *
- * Nuks every user in Firestore EXCEPT the admin role.
+ * Xoá sạch mọi user trong Firestore NGOẠI TRỪ role admin.
  *
- * Usage:
+ * Cách dùng:
  *   cd server
  *   node scripts/wipe-users.js
  *
- * It prints the admin doc id it kept, and the list of every user doc it
- * deleted. Exits non-zero on any failure.
+ * Script in ra id của admin doc đã giữ lại, cùng danh sách mọi user doc đã
+ * xoá. Thoát với mã khác 0 nếu có lỗi xảy ra.
  */
 
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
@@ -51,7 +51,7 @@ async function wipeUsers() {
   }
 
   console.log(`[wipe-users] deleting ${toDelete.length} user(s):`);
-  // batch in chunks of 500 (Firestore limit)
+  // gom batch từng khối 500 (giới hạn của Firestore)
   for (let i = 0; i < toDelete.length; i += 500) {
     const chunk = toDelete.slice(i, i + 500);
     const batch = db.batch();

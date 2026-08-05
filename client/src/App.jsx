@@ -1,20 +1,20 @@
 /**
- * App root.
+ * Gốc của App.
  *
- * Provider stack:
- *   i18n            (already initialized via src/i18n/index.js)
- *   AuthProvider    (JWT + user)
+ * Chồng các Provider:
+ *   i18n            (đã được khởi tạo qua src/i18n/index.js)
+ *   AuthProvider    (JWT + người dùng)
  *   LoadingProvider (overlay)
  *   ToastProvider   (toasts)
- *   ConfirmProvider (modal confirms)
+ *   ConfirmProvider (modal xác nhận)
  *
- * Routes:
- *   /login            public
- *   /dashboard        protected
- *   /posts            protected (any role)
- *   /posts/new        protected (any role — admin/mgr/staff can mutate)
- *   /posts/:id/edit   protected (any role)
- *   /users            protected + admin/manager only
+ * Các route:
+ *   /login            công khai
+ *   /dashboard        yêu cầu đăng nhập
+ *   /posts            yêu cầu đăng nhập (mọi vai trò)
+ *   /posts/new        yêu cầu đăng nhập (mọi vai trò — admin/mgr/staff đều thay đổi được)
+ *   /posts/:id/edit   yêu cầu đăng nhập (mọi vai trò)
+ *   /users            yêu cầu đăng nhập + chỉ admin/manager
  */
 import './i18n';
 
@@ -44,10 +44,10 @@ export default function App() {
         <ToastProvider>
           <ConfirmProvider>
             <Routes>
-              {/* Public */}
+              {/* Công khai */}
               <Route path="/login" element={<Login />} />
 
-              {/* Protected — wrapped in DashboardLayout */}
+              {/* Yêu cầu đăng nhập — bọc trong DashboardLayout */}
               <Route
                 element={
                   <ProtectedRoute>

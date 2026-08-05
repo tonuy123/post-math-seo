@@ -11,3 +11,6 @@ build/
 build-public/
 .vscode/
 .idea/
+
+# File chứa secret khi copy .env ra làm việc (tránh git add . cuốn theo)
+*.example

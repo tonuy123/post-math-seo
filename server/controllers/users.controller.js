@@ -1,12 +1,12 @@
 /**
- * Users controller — RBAC-aware CRUD.
+ * Controller users — CRUD có kiểm soát phân quyền RBAC.
  *
  *   GET    /users              list (admin/manager)
- *   GET    /users/me           current user (any auth)
- *   POST   /users              create (admin/manager)
- *   GET    /users/:id          fetch (admin/manager)
- *   PUT    /users/:id          update (self always; admin/manager for others)
- *   DELETE /users/:id          delete (admin/manager; not self; not admin)
+ *   GET    /users/me           user hiện tại (mọi user đã đăng nhập)
+ *   POST   /users              tạo mới (admin/manager)
+ *   GET    /users/:id          lấy chi tiết (admin/manager)
+ *   PUT    /users/:id          cập nhật (luôn cho chính mình; admin/manager cho người khác)
+ *   DELETE /users/:id          xoá (admin/manager; không xoá bản thân; không xoá admin)
  */
 const usersService = require('../services/users.service');
 const ok = (res, data, message = 'OK') => res.status(200).json({ success: true, message, data });

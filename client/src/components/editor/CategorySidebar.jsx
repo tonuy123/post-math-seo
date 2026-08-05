@@ -5,22 +5,22 @@ import {
 import { ChevronDown, Plus, ChevronRight, Loader2 } from 'lucide-react';
 
 /**
- * CategorySidebar — real-time Firebase category manager for the post editor.
+ * CategorySidebar — trình quản lý danh mục Firebase thời gian thực cho trình soạn thảo bài viết.
  *
- * Firebase collection: `categories`
- * Document shape: { id, name, postCount }
+ * Collection Firebase: `categories`
+ * Hình dạng document: { id, name, postCount }
  *
  * Props:
- *   - selected : string[]          IDs of currently checked categories.
+ *   - selected : string[]          ID của các danh mục đang được tích chọn.
  *   - onChange  : (next: string[]) => void
- *   - db       : Firestore          instance (passed from parent)
+ *   - db       : Firestore          instance (truyền từ component chủ)
  *
- * Features:
- *   - Header accordion (collapsible panel)
- *   - Two tabs: "Tất cả danh mục" / "Dùng nhiều nhất"
- *   - Real-time onSnapshot listener — list updates instantly on any write
- *   - "Dùng nhiều nhất" sorts by postCount DESC
- *   - Toggleable "+ Thêm Danh Mục" inline form → Firebase addDoc
+ * Tính năng:
+ *   - Accordion ở đầu (bảng thu gọn được)
+ *   - Hai tab: "Tất cả danh mục" / "Dùng nhiều nhất"
+ *   - Bộ lắng nghe onSnapshot thời gian thực — danh sách cập nhật tức thì khi có thay đổi
+ *   - "Dùng nhiều nhất" sắp xếp theo postCount GIẢM DẦN
+ *   - Biểu mẫu "+ Thêm Danh Mục" nội tuyến có thể bật/tắt → addDoc Firebase
  */
 export function CategorySidebar({ selected = [], onChange, db }) {
   // ── UI state ────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ export function CategorySidebar({ selected = [], onChange, db }) {
   const [newName,      setNewName]      = useState('');
   const [adding,       setAdding]      = useState(false);
 
-  // ── Firebase real-time data ───────────────────────────────────────
+  // ── Dữ liệu thời gian thực Firebase ──────────────────────────────────
   const [categories, setCategories] = useState([]);   // Array<{ id, name, postCount }>
   const [loading,    setLoading]    = useState(true);
 
@@ -97,7 +97,7 @@ export function CategorySidebar({ selected = [], onChange, db }) {
 
   return (
     <div className="bg-white border border-wp-gray-dark rounded">
-      {/* ── Header accordion toggle ── */}
+      {/* ── Nút chuyển đổi accordion ở đầu ── */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -116,7 +116,7 @@ export function CategorySidebar({ selected = [], onChange, db }) {
 
       {open && (
         <>
-          {/* ── Tab switch ── */}
+          {/* ── Chuyển tab ── */}
           <div className="flex border-b border-wp-gray text-xs">
             {[
               { id: 'all',     label: 'Tất cả danh mục' },
@@ -149,7 +149,7 @@ export function CategorySidebar({ selected = [], onChange, db }) {
             })}
           </div>
 
-          {/* ── Scrollable list ── */}
+          {/* ── Danh sách cuộn được ── */}
           <div className="p-2 max-h-64 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-8 gap-2 text-ink-muted">
@@ -194,7 +194,7 @@ export function CategorySidebar({ selected = [], onChange, db }) {
             )}
           </div>
 
-          {/* ── Add form toggle ── */}
+          {/* ── Nút chuyển đổi biểu mẫu thêm ── */}
           <div className="px-4 py-2 border-t border-wp-gray bg-[#fafafa]">
             {!isAddFormOpen ? (
               <button

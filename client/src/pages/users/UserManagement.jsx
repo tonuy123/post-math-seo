@@ -28,7 +28,7 @@ export default function UserManagement() {
   const safeUsers = users || [];
   const [loading, setLoading] = useState(true);
 
-  // Task 5: track editingUserId (id user đang mở inline form) + snapshot gốc để so sánh dirty.
+  // Task 5: theo dõi editingUserId (id user đang mở inline form) + snapshot gốc để so sánh dirty.
   const [editingUserId, setEditingUserId] = useState(null);
   const [originalSnapshot, setOriginalSnapshot] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
@@ -37,7 +37,7 @@ export default function UserManagement() {
 
   const isAdmin = me?.role === ROLES.ADMIN;
 
-  // Task 3: Navigation Guard khi form đang dirty.
+  // Task 3: Guard chống điều hướng khi form đang dirty.
   const isEditDirty =
     !!editDraft && !!originalSnapshot &&
     JSON.stringify(editDraft) !== JSON.stringify(originalSnapshot);
@@ -55,7 +55,7 @@ export default function UserManagement() {
   }
   useEffect(() => { load(); }, []);
 
-  // ---- Add flow ----
+  // ---- Luồng thêm mới ----
   function openAdd() {
     const initial = { mode: 'add', username: '', password: '', role: ROLES.STAFF, avatar: null };
     setAddDraft(initial);
@@ -88,7 +88,7 @@ export default function UserManagement() {
         password: e.password,
         avatar: e.avatar,
       };
-      // Task 4: role chỉ gửi khi current user là Admin.
+      // Task 4: role chỉ gửi khi người dùng hiện tại là Admin.
       if (isAdmin) payload.role = e.role;
       await usersApi.create(payload);
       showToast(t('userSavedSuccess'), 'success');
@@ -101,12 +101,12 @@ export default function UserManagement() {
     }
   }
 
-  // ---- Edit flow (inline accordion) ----
+  // ---- Luồng chỉnh sửa (accordion inline) ----
   function openEdit(u) {
     const snapshot = {
-      // `id` here is the API identifier = username (the backend's
-      // public convention). Firestore doc id (= Firebase UID) is kept
-      // as `firebaseUid` for future use, but NOT sent on the wire.
+      // `id` ở đây là API identifier = username (quy ước công khai của
+      // backend). Firestore doc id (= Firebase UID) được giữ
+      // trong `firebaseUid` để dùng sau này, nhưng KHÔNG gửi lên mạng.
       id: u.username,
       firebaseUid: u.firebaseUid || u.id,
       username: u.username || '',
@@ -154,7 +154,7 @@ export default function UserManagement() {
         payload.password = e.password;
       }
       payload.avatar = e.avatar || null;
-      // Task 4: role chỉ gửi khi current user là Admin và không phải edit chính mình.
+      // Task 4: role chỉ gửi khi người dùng hiện tại là Admin và không phải sửa chính mình.
       if (isAdmin && me?.id !== e.id && e.role && e.role !== original?.role) {
         payload.role = e.role;
       }

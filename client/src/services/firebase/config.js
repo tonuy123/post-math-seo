@@ -1,17 +1,17 @@
-// Firebase Web SDK bootstrap.
+// Khởi tạo Firebase Web SDK.
 //
-// HOW TO ACTIVATE
+// CÁCH KÍCH HOẠT
 // ---------------
 // 1. `cd client && npm install firebase`
-// 2. Open the Firebase Console → Project Settings → "Your apps" → Web app
-// 3. Copy the config object and paste it below (replacing the empty braces)
-// 4. Make sure Firestore is enabled in the console and the security rules
-//    allow read/write on the `categories` collection.
+// 2. Mở Firebase Console → Project Settings → "Your apps" → Web app
+// 3. Sao chép config object và dán vào bên dưới (thay cho dấu ngoặc rỗng)
+// 4. Đảm bảo Firestore được bật trong console và các security rules
+//    cho phép đọc/ghi trên collection `categories`.
 //
-// Until then, `db` is intentionally `null` so consumers can feature-detect
-// instead of crashing. The rest of the app (posts, auth, etc.) is
-// unaffected — only Firebase-powered widgets like <CategorySidebar />
-// care about this.
+// Trước khi đó, `db` cố tình là `null` để consumer có thể dò theo tính năng
+// thay vì sập. Phần còn lại của app (posts, auth, v.v.) không
+// bị ảnh hưởng — chỉ các widget dùng Firebase như <CategorySidebar />
+// quan tâm đến điều này.
 import { initializeApp }                from 'firebase/app';
 import { getFirestore }                 from 'firebase/firestore';
 
@@ -27,8 +27,8 @@ const firebaseConfig = {
 
 let _db = null;
 try {
-  // Initialise only when at least the projectId is filled in. The empty
-  // object above will throw, which we swallow so the app keeps running.
+  // Chỉ khởi tạo khi ít nhất projectId đã được điền. Object rỗng
+  // ở trên sẽ ném lỗi, và ta nuốt lỗi đó để app tiếp tục chạy.
   if (firebaseConfig.projectId) {
     const app = initializeApp(firebaseConfig);
     _db = getFirestore(app);

@@ -2,17 +2,17 @@ import { Pencil, AlertCircle } from 'lucide-react';
 import { TITLE_MAX, DESC_MAX } from './lib/seoConstants';
 
 /**
- * Visual clone of a Google SERP snippet.
+ * Bản sao trực quan của đoạn trích SERP Google.
  *
- * Typography follows Google Search result card:
- *   - URL  : small gray (~14px), #5f6368, may truncate
- *   - Title: large Google blue (#1a0dab), ~20px, line-clamp-2
- *   - Desc : medium gray, ~14px, line-clamp-2
+ * Kiểu chữ theo thẻ kết quả Tìm kiếm Google:
+ *   - URL  : xám nhỏ (~14px), #5f6368, có thể cắt ngắn
+ *   - Tiêu đề: xanh Google lớn (#1a0dab), ~20px, line-clamp-2
+ *   - Mô tả : xám vừa, ~14px, line-clamp-2
  *
- * The "Edit Snippet" CTA is a solid blue button styled after the
- * WordPress primary button (bg-blue-600, hover:bg-blue-700).
+ * CTA "Chỉnh sửa đoạn trích" là nút xanh đặc được tạo kiểu theo
+ * nút chính của WordPress (bg-blue-600, hover:bg-blue-700).
  *
- * Props unchanged from previous version — this is a pure UI rewrite.
+ * Props không đổi so với phiên bản trước — đây chỉ là viết lại UI thuần.
  */
 export function SnippetPreview({ value, baseDomain, onEdit }) {
   const { metaTitle, metaDescription, slug } = value || {};
@@ -23,7 +23,7 @@ export function SnippetPreview({ value, baseDomain, onEdit }) {
 
   return (
     <div className="rounded border border-wp-gray bg-white p-4">
-      {/* Header — section label + CTA */}
+      {/* Đầu — nhãn phần + CTA */}
       <div className="flex items-center justify-between mb-3 gap-2">
         <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-secondary">
           <AlertCircle size={12} className="text-ink-muted" />
@@ -39,14 +39,14 @@ export function SnippetPreview({ value, baseDomain, onEdit }) {
         </button>
       </div>
 
-      {/* Snippet body — exact Google look */}
+      {/* Thân đoạn trích — đúng giao diện Google */}
       <div className="font-sans">
-        {/* URL — small, gray, truncate */}
+        {/* URL — nhỏ, xám, cắt ngắn */}
         <div className="text-xs text-[#5f6368] truncate" dir="ltr">
           {fullUrl}
         </div>
 
-        {/* Title — large, Google blue, hover underline, line-clamp-2 */}
+        {/* Tiêu đề — lớn, xanh Google, gạch chân khi hover, line-clamp-2 */}
         <div
           className={[
             'text-[#1a0dab] text-[20px] leading-[1.3] hover:underline cursor-pointer break-words mt-0.5',
@@ -59,7 +59,7 @@ export function SnippetPreview({ value, baseDomain, onEdit }) {
           )}
         </div>
 
-        {/* Description — readable gray, line-clamp-2 */}
+        {/* Mô tả — xám dễ đọc, line-clamp-2 */}
         <div
           className={[
             'text-[#4d5156] text-sm leading-snug mt-0.5 break-words',
@@ -73,7 +73,7 @@ export function SnippetPreview({ value, baseDomain, onEdit }) {
         </div>
       </div>
 
-      {/* Length meters */}
+      {/* Đồng hồ độ dài */}
       <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-3 pt-3 border-t border-wp-gray text-[11px] text-ink-muted">
         <span>
           Title:{' '}

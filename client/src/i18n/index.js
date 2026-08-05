@@ -1,6 +1,6 @@
 /**
- * i18n bootstrap (i18next + react-i18next).
- * Locales imported directly from JSON to keep the bundle simple.
+ * Khởi tạo i18n (i18next + react-i18next).
+ * Locales được import trực tiếp từ JSON để giữ bundle đơn giản.
  */
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
@@ -20,7 +20,7 @@ i18n
     },
     lng: stored,
     fallbackLng: 'en',
-    interpolation: { escapeValue: false }, // React already escapes
+    interpolation: { escapeValue: false }, // React đã tự escape rồi
   });
 
 export function setLanguage(lang) {

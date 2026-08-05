@@ -1,14 +1,14 @@
 /**
  * ============================================================================
- *  Firebase Admin SDK Initialization
+ *  Khởi tạo Firebase Admin SDK
  * ============================================================================
- *  Extracted from legacy `script.js` firebaseConfig (web SDK).
- *  In the new architecture the *server* uses the Admin SDK with a service
- *  account JSON file. The web SDK is NOT used here.
+ *  Trích xuất từ firebaseConfig (web SDK) của `script.js` bản cũ.
+ *  Trong kiến trúc mới, *server* dùng Admin SDK với file JSON service
+ *  account. Web SDK KHÔNG được dùng ở đây.
  *
- *  firebase-admin v14 flattened its public API — `admin.credential`,
- *  `admin.firestore`, and `admin.auth` are no longer namespaces; the
- *  Firestore / Auth submodules are lazy-required instead.
+ *  firebase-admin v14 làm phẳng public API của nó — `admin.credential`,
+ *  `admin.firestore`, và `admin.auth` không còn là namespaces nữa; thay
+ *  vào đó các submodule Firestore / Auth được require lười (lazy-required).
  *
  *  Service account nạp theo thứ tự ưu tiên:
  *    1. FIREBASE_SERVICE_ACCOUNT_JSON — nội dung JSON dán thẳng vào env var
@@ -89,7 +89,7 @@ function getDb() {
     throw new Error('Firebase Admin not initialized. Call initializeFirebase() first.');
   }
   if (!_db) {
-    // firebase-admin v14 lazy-loads Firestore
+    // firebase-admin v14 lazy-load Firestore
     const { getFirestore } = require('firebase-admin/firestore');
     _db = getFirestore();
   }
@@ -101,7 +101,7 @@ function getAuth() {
     throw new Error('Firebase Admin not initialized. Call initializeFirebase() first.');
   }
   if (!_auth) {
-    // firebase-admin v14 lazy-loads Auth
+    // firebase-admin v14 lazy-load Auth
     const { getAuth } = require('firebase-admin/auth');
     _auth = getAuth();
   }

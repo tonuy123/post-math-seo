@@ -15,53 +15,53 @@ import { SocialSnippetModal } from './SocialSnippetModal';
 import { calculateSeoScore } from './lib/calculateSeoScore';
 
 /**
- * <RankMathSeoBox /> — top-level SEO panel for the post editor sidebar.
+ * <RankMathSeoBox /> — bảng SEO cấp cao nhất cho thanh bên của trình soạn thảo bài viết.
  *
- * STATE OWNERSHIP
- * ---------------
- * This component is the SINGLE SOURCE OF TRUTH for all SEO data:
+ * TRÁCH NHIỆM STATE
+ * -----------------
+ * Component này là NGUỒN DỮ LIỆU DUY NHẤT (SINGLE SOURCE OF TRUTH) cho mọi dữ liệu SEO:
  *
  *   seoState = {
- *     focusKeywords   : string[]   // multi-keyword list, index 0 = primary
+ *     focusKeywords   : string[]   // danh sách nhiều từ khoá, vị trí 0 = chính
  *     metaTitle       : string
  *     metaDescription : string
  *     slug            : string
  *     isCornerstone   : boolean    // "Bài viết cốt lõi"
- *     content         : string     // raw HTML from the post body, used by
- *                                  // the readability / content checks
+ *     content         : string     // HTML thô từ thân bài, dùng cho
+ *                                  // các tiêu chí khả năng đọc / nội dung
  *   }
  *
- * The host (e.g. <PostEditor />) owns persistence: it passes `value`
- * (initial) and receives `onChange` whenever any field updates. The
- * modal draft is internal and never escapes the modal.
+ * Component chủ (ví dụ <PostEditor />) sở hữu việc lưu trữ: nó truyền vào
+ * `value` (ban đầu) và nhận `onChange` mỗi khi có trường nào cập nhật. Bản
+ * nháp trong modal là nội bộ và không bao giờ thoát ra khỏi modal.
  *
- * DATA FLOW
- * ---------
- *   field input → setField(patch)   →  setSeoState → React re-render
- *                  └─→ seoState is memoised → calculateSeoScore(state)
+ * LUỒNG DỮ LIỆU
+ * -------------
+ *   input trường → setField(patch)   →  setSeoState → React re-render
+ *                  └─→ seoState được memoise → calculateSeoScore(state)
  *                        └─→ score, checks   →  <SeoChecklist />,
  *                                              <FocusKeywordInput />
- *                                              badge, etc.
+ *                                              huy hiệu, v.v.
  *
- * Every sub-component is CONTROLLED — they receive values + callbacks,
- * never mutate state directly. That keeps the score engine in sync.
+ * Mọi component con đều là CONTROLLED — chúng nhận value + callback,
+ * không bao giờ đột biến state trực tiếp. Điều đó giữ công cụ chấm điểm đồng bộ.
  *
- * ⚠️ IMPORTANT — expected `value` prop shape from the host page:
+ * ⚠️ QUAN TRỌNG — hình dạng prop `value` dự kiến từ trang chủ:
  *   <RankMathSeoBox
  *     value={{
- *       focusKeywords  : string[]              // e.g. ['nghiep vu bao mau']
- *       metaTitle      : string                // SEO title
+ *       focusKeywords  : string[]              // ví dụ ['nghiep vu bao mau']
+ *       metaTitle      : string                // Tiêu đề SEO
  *       metaDescription: string                // Meta description
- *       slug           : string                // URL slug
+ *       slug           : string                // đường dẫn URL (slug)
  *       isCornerstone  : boolean               // "Bài viết cốt lõi"
- *       content        : string                // ⚠️ REQUIRED — raw HTML
- *                                            // from your editor (TinyMCE,
- *                                            // Quill, etc.). Without this
- *                                            // the score stays 0 because
- *                                            // content-based checks can't
- *                                            // run.
- *       baseDomain?    : string                // for Internal/External
- *                                            // link classification
+ *       content        : string                // ⚠️ BẮT BUỘC — HTML thô
+ *                                            // từ trình soạn thảo của bạn (TinyMCE,
+ *                                            // Quill, v.v.). Thiếu trường này
+ *                                            // điểm sẽ đứng ở 0 vì các tiêu chí
+ *                                            // dựa trên nội dung không thể
+ *                                            // chạy.
+ *       baseDomain?    : string                // để phân loại liên kết
+ *                                            // Nội bộ/Ngoài
  *     }}
  *     onChange={...}
  *   />
@@ -73,7 +73,7 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
 
-  // Refs for "click a checklist row → focus the matching input"
+  // Refs để "bấm một dòng trong checklist → focus vào input tương ứng"
   const fieldRefs = {
     metaTitle:       useRef(null),
     metaDescription: useRef(null),
@@ -81,11 +81,11 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
     content:         useRef(null),
   };
 
-  // ─── Normalise incoming value ──────────────────────────────────────────
-  // Defensive: parent may pass an array of objects (e.g. leftover state
-  // from an older shape like { text, checked }) instead of plain strings.
-  // We coerce to string[] here so the score engine never sees the wrong
-  // type — which is the #1 cause of the "score stuck at 0" bug.
+  // ─── Chuẩn hoá value đầu vào ──────────────────────────────────────────
+  // Phòng thủ: component chủ có thể truyền mảng các object (ví dụ state
+  // sót lại từ hình dạng cũ như { text, checked }) thay vì chuỗi đơn thuần.
+  // Ta ép về string[] tại đây để công cụ chấm điểm không bao giờ gặp sai
+  // kiểu dữ liệu — nguyên nhân số 1 của lỗi "điểm kẹt ở 0".
   const seoState = useMemo(() => {
     const rawKws = value?.focusKeywords ?? [];
     const focusKeywords = (Array.isArray(rawKws) ? rawKws : [])
@@ -104,10 +104,10 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
   }, [value]);
 
   const setField = useCallback((patch) => {
-    onChange({ ...seoState, ...patch });
-  }, [seoState, onChange]);
+    onChange({ ...value, ...patch });
+  }, [value, onChange]);
 
-  // ─── Score engine (re-runs whenever any tracked field changes) ────────
+  // ─── Công cụ chấm điểm (chạy lại mỗi khi bất kỳ trường theo dõi nào thay đổi) ──
   const { score, tone, checks } = useMemo(
     () => calculateSeoScore(seoState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,14 +127,14 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
     empty: 'bg-wp-gray-dark text-ink-secondary',
   }[tone];
 
-  // ─── Checklist "focus field" handler ──────────────────────────────────
+  // ─── Handler "focus trường" của checklist ──────────────────────────────
   const focusField = useCallback((fieldKey) => {
     setActiveTab('overview');
     setModalOpen(false);
-    // Two of the focusable targets live inside the modal — open it first.
+    // Hai trong số các mục tiêu focus nằm bên trong modal — hãy mở modal trước.
     if (fieldKey === 'metaTitle' || fieldKey === 'metaDescription' || fieldKey === 'slug') {
       setModalOpen(true);
-      // The modal focuses its own title input; nothing else to do.
+      // Modal tự focus vào input tiêu đề của nó; không cần làm gì thêm.
       return;
     }
     if (fieldKey === 'content') {
@@ -146,7 +146,7 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
   // ─── Render ────────────────────────────────────────────────────────────
   return (
     <div className="bg-white border border-wp-gray-dark rounded shadow-sm overflow-hidden">
-      {/* Card header — title + score badge (clickable to toggle) */}
+      {/* Đầu thẻ — tiêu đề + huy hiệu điểm (bấm để mở/đóng) */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -179,7 +179,7 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
           >
             {activeTab === 'overview' && (
               <>
-                {/* ── 1. SERP preview sits at the very top ── */}
+                {/* ── 1. Bản xem trước SERP nằm ở trên cùng ── */}
                 <SnippetPreview
                   value={{
                     metaTitle:       seoState.metaTitle,
@@ -190,17 +190,17 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
                   onEdit={() => setModalOpen(true)}
                 />
 
-                {/* ── 2. Divider between snippet preview & the rest ── */}
+                {/* ── 2. Đường phân cách giữa bản xem trước đoạn trích & phần còn lại ── */}
                 <hr className="my-5 border-gray-200" />
 
-                {/* ── 3. Focus keywords + live score ── */}
+                {/* ── 3. Từ khoá trọng tâm + điểm trực tiếp ── */}
                 <FocusKeywordInput
                   value={seoState.focusKeywords}
                   onChange={(kws) => setField({ focusKeywords: kws })}
                   score={{ score, tone }}
                 />
 
-                {/* ── 4. Cornerstone toggle ── */}
+                {/* ── 4. Công tắc bài viết cốt lõi ── */}
                 <label className="inline-flex items-center gap-2 text-sm text-ink-primary cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -215,8 +215,8 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
                 {/* ── 5. Checklist ── */}
                 <SeoChecklist checks={checks} onFocus={focusField} />
 
-                {/* ── Hidden mirror for the content field so focusField('content')
-                      can scroll to it even if the host editor uses its own ref. */}
+                {/* ── Bản sao ẩn cho trường content để focusField('content')
+                      có thể cuộn tới nó ngay cả khi trình soạn thảo chủ dùng ref riêng. */}
                 <Input
                   ref={fieldRefs.content}
                   type="hidden"
@@ -242,10 +242,6 @@ export function RankMathSeoBox({ value, onChange, baseDomain }) {
               <SchemaTab
                 value={value?.schemaType}
                 onChange={(schemaType) => setField({ schemaType })}
-                onOpenGenerator={(schemaType) => {
-                  // eslint-disable-next-line no-console
-                  console.log('[RankMathSeoBox] open Schema Generator for:', schemaType);
-                }}
               />
             )}
 

@@ -1,7 +1,7 @@
 /**
- * Public surface of the Rank Math SEO panel.
- * Importers should always go through this barrel so internal file moves
- * don't break consumers.
+ * Bề mặt công khai của bảng SEO Rank Math.
+ * Bên import nên luôn đi qua file tổng này để việc di chuyển file nội bộ
+ * không làm hỏng bên tiêu thụ.
  */
 export { RankMathSeoBox } from './RankMathSeoBox';
 export { SeoTabs }            from './SeoTabs';

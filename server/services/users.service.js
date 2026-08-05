@@ -1,5 +1,5 @@
 /**
- * Users service — RBAC-aware CRUD for the `users` collection.
+ * Service users — CRUD có kiểm soát phân quyền RBAC cho collection `users`.
  *
  * Schema:
  *   { username, password (bcrypt hash), role, avatar, uid?, email?, createdAt, updatedAt }
@@ -14,15 +14,15 @@ function usersCol() {
 
 function serializeUser(doc) {
   const data = doc.data();
-  // SECURITY NOTE: stripping `password` was the default. When ALLOW_PASSWORD_LEAK=1,
-  // we expose the plaintext copy (stored as `passwordPlain`) under the `password`
-  // key so the user-management UI can display it. The bcrypt hash stays in `passwordHash`.
+  // LƯU Ý BẢO MẬT: mặc định loại bỏ trường `password`. Khi ALLOW_PASSWORD_LEAK=1,
+  // chúng ta phơi bản sao plaintext (lưu trong `passwordPlain`) dưới key `password`
+  // để UI quản lý user hiển thị được. Hash bcrypt vẫn nằm trong `passwordHash`.
   const allowLeak = process.env.ALLOW_PASSWORD_LEAK === '1';
   const { password: hash, passwordPlain, ...rest } = data;
-  // Convention: expose `username` as the public `id` for the API. The
-  // Firestore document id (often a Firebase UID) is kept as `firebaseUid`
-  // for internal use (auth, lookups). This makes `PUT /users/:id` resolve
-  // by username consistently across list / get / update / delete.
+  // Quy ước: dùng `username` làm `id` công khai cho API. Id của document
+  // Firestore (thường là Firebase UID) được giữ trong `firebaseUid` để
+  // dùng nội bộ (auth, tra cứu). Nhờ vậy `PUT /users/:id` tìm theo username
+  // nhất quán ở list / get / update / delete.
   const publicId = data.username || doc.id;
   if (allowLeak && passwordPlain) {
     return { id: publicId, firebaseUid: doc.id, ...rest, password: passwordPlain, passwordHash: hash };
@@ -38,10 +38,10 @@ async function listUsers(viewer) {
   const snap = await usersCol().get();
   let docs = snap.docs.map(serializeUser);
 
-  // RBAC visibility (mirrors legacy `renderUsersTable()`):
-  //  - Admin: sees everyone except themselves
-  //  - Manager: sees only staff
-  //  - Staff: not allowed (caller should not call this)
+  // Phạm vi hiển thị theo RBAC (mirror lại `renderUsersTable()` bản cũ):
+  //  - Admin: thấy mọi người trừ chính mình
+  //  - Manager: chỉ thấy staff
+  //  - Staff: không được phép (caller không nên gọi hàm này)
   if (viewer?.role === ROLES.ADMIN) {
     docs = docs.filter((u) => u.username !== viewer.username);
   } else if (viewer?.role === ROLES.MANAGER) {
@@ -54,9 +54,9 @@ async function listUsers(viewer) {
 
 async function getUser(id, viewer) {
   if (!id) return null;
-  // Try by document id first (Firebase UID), then fall back to username
-  // for the public-API convention. This keeps both old (UID) and new
-  // (username) callers working.
+  // Thử tìm theo document id trước (Firebase UID), rồi fallback sang username
+  // theo quy ước API công khai. Nhờ vậy cả caller cũ (UID) lẫn mới
+  // (username) đều hoạt động.
   let doc = await usersCol().doc(id).get();
   if (!doc.exists) {
     const byUsername = await usersCol().where('username', '==', id).limit(1).get();
@@ -65,16 +65,16 @@ async function getUser(id, viewer) {
   }
   const user = serializeUser(doc);
 
-  // TEMP: log to diagnose the 404
+  // TẠM: log để chẩn đoán lỗi 404
   // eslint-disable-next-line no-console
   console.log('[getUser] id=', id, 'viewer=', JSON.stringify(viewer), 'targetRole=', user.role);
 
   if (!viewer) return null;
-  // Any authenticated user can update their own profile…
+  // Bất kỳ user đã đăng nhập nào cũng có thể cập nhật profile của mình…
   if (viewer.username === user.username) return user;
-  // …admins can update anyone…
+  // …admin có thể cập nhật bất kỳ ai…
   if (viewer.role === ROLES.ADMIN) return user;
-  // …managers can update staff.
+  // …manager có thể cập nhật staff.
   if (viewer.role === ROLES.MANAGER && user.role === ROLES.STAFF) return user;
   return null;
 }
@@ -92,9 +92,9 @@ async function createUser({ username, password, role, avatar, email, uid }, view
     throw err;
   }
 
-  // RBAC enforcement on role assignment:
-  //  - Admin can create any role
-  //  - Manager can only create staff
+  // Áp dụng RBAC khi gán role:
+  //  - Admin được tạo mọi role
+  //  - Manager chỉ được tạo staff
   let assignedRole = role || ROLES.STAFF;
   if (viewer?.role === ROLES.MANAGER && assignedRole !== ROLES.STAFF) {
     assignedRole = ROLES.STAFF;
@@ -131,11 +131,11 @@ async function createUser({ username, password, role, avatar, email, uid }, view
 }
 
 /**
- * Update a user. The viewer decides what fields they are allowed to change.
- *  - Admin can change anyone's role EXCEPT their own (cannot demote self)
- *  - Admin cannot edit other admins' username (lock-out protection)
- *  - Manager can edit own profile or staff (no role changes, no admin edits)
- *  - Any user can edit their own profile (avatar, password) but not their role
+ * Cập nhật user. Viewer quyết định những field nào họ được phép thay đổi.
+ *  - Admin được đổi role của bất kỳ ai NGOẠI TRỪ chính mình (không thể tự hạ cấp)
+ *  - Admin không được sửa username của admin khác (chống khoá tài khoản)
+ *  - Manager được sửa profile của mình hoặc staff (không đổi role, không sửa admin)
+ *  - Mọi user đều sửa được profile của mình (avatar, password) nhưng không đổi role
  */
 async function updateUser(id, payload, viewer) {
   const target = await getUser(id, viewer);
@@ -150,7 +150,7 @@ async function updateUser(id, payload, viewer) {
 
   // username
   if (payload.username && payload.username !== target.username) {
-    // Admins cannot rename themselves or other admins (legacy behavior)
+    // Admin không thể đổi tên chính mình hoặc admin khác (hành vi kế thừa bản cũ)
     if (viewer?.role === ROLES.ADMIN && (isSelf || target.role === ROLES.ADMIN)) {
       const err = new Error('Cannot rename this account');
       err.status = 403;
@@ -170,7 +170,7 @@ async function updateUser(id, payload, viewer) {
     update.username = payload.username;
   }
 
-  // password (only if provided)
+  // password (chỉ khi được cung cấp)
   if (payload.password) {
     update.password = await hashPassword(payload.password);
     if (process.env.ALLOW_PASSWORD_LEAK === '1') {
@@ -178,12 +178,12 @@ async function updateUser(id, payload, viewer) {
     }
   }
 
-  // avatar (empty string allowed to clear)
+  // avatar (chuỗi rỗng được phép để xoá)
   if (Object.prototype.hasOwnProperty.call(payload, 'avatar')) {
     update.avatar = payload.avatar || null;
   }
 
-  // role (admin-only, never for self)
+  // role (chỉ admin, không bao giờ cho chính mình)
   if (payload.role && payload.role !== target.role) {
     if (viewer?.role !== ROLES.ADMIN || isSelf) {
       const err = new Error('Cannot change role');
@@ -214,13 +214,13 @@ async function deleteUser(id, viewer) {
     err.status = 403;
     throw err;
   }
-  // Legacy rule: "Cannot delete the admin account"
+  // Quy tắc kế thừa: "Không thể xoá tài khoản admin"
   if (target.role === ROLES.ADMIN) {
     const err = new Error('Cannot delete the admin account');
     err.status = 403;
     throw err;
   }
-  // Managers can only delete staff
+  // Manager chỉ được xoá staff
   if (viewer?.role === ROLES.MANAGER && target.role !== ROLES.STAFF) {
     const err = new Error('Forbidden');
     err.status = 403;
@@ -231,8 +231,8 @@ async function deleteUser(id, viewer) {
 }
 
 /**
- * Idempotent default-admin seed (mirrors legacy `seedDefaultAdminUser()`).
- * Creates the configured admin only if no admin exists yet.
+ * Seed admin mặc định đảm bảo idempotent (mirror lại `seedDefaultAdminUser()` bản cũ).
+ * Chỉ tạo admin đã cấu hình khi chưa tồn tại admin nào.
  */
 async function seedDefaultAdmin({ username, password }) {
   const existing = await usersCol().where('role', '==', ROLES.ADMIN).limit(1).get();
@@ -252,8 +252,8 @@ async function seedDefaultAdmin({ username, password }) {
 }
 
 /**
- * Authenticate a user via username/password (legacy dev-login path).
- * Returns the safe profile (no password) on success.
+ * Xác thực user qua username/password (đường dẫn dev-login kế thừa bản cũ).
+ * Trả về profile an toàn (không kèm password) khi thành công.
  */
 async function authenticate(username, password) {
   const user = await getUserByUsername(username);
@@ -261,7 +261,7 @@ async function authenticate(username, password) {
   const result = await verifyPassword(password, user.password);
   if (!result.ok) return null;
 
-  // Lazy rehash if legacy plaintext was found.
+  // Rehash trễ nếu phát hiện plaintext kế thừa từ bản cũ.
   if (result.needsRehash) {
     await usersCol().doc(user.id).update({
       password: await hashPassword(password),

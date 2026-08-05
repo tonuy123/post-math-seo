@@ -1,52 +1,52 @@
 /**
  * calculateSeoScore(state)
  * ------------------------
- * Weighted, Rank-Math-style SEO scoring engine.
+ * Công cụ chấm điểm SEO theo phong cách Rank Math, có trọng số.
  *
- * Pure function. No React, no DOM mutation, no I/O — safe to import
- * from Node tests and from React components alike.
+ * Hàm thuần tuý (pure function). Không dùng React, không thao tác DOM,
+ * không I/O — an toàn khi import từ test Node lẫn component React.
  *
- * Returns:
+ * Giá trị trả về:
  *   {
  *     score  : number 0..100,
  *     tone   : 'good' | 'ok' | 'bad' | 'empty',
  *     checks : Array<{ id, section, label, passed, fieldKey }>
  *   }
  *
- * Sections used by the consumer (<SeoChecklist />):
+ * Các phần (section) được dùng bởi bên tiêu thụ (<SeoChecklist />):
  *   'basic' | 'additional' | 'readability'
  *
- * INPUT SHAPE (state):
+ * HÌNH DẠNG ĐẦU VÀO (state):
  *   {
- *     focusKeywords    : string[]      // [0] = primary, others = secondary
+ *     focusKeywords    : string[]      // [0] = từ khoá chính, còn lại là phụ
  *     metaTitle        : string,
  *     metaDescription  : string,
  *     slug             : string,
- *     content          : string        // RAW HTML (e.g. TinyMCE body)
- *     baseDomain?      : string        // e.g. 'https://example.com/'
- *                                  // Used to classify Internal vs External
- *                                  // links. Falls back gracefully if absent.
+ *     content          : string        // HTML THÔ (ví dụ thân bài TinyMCE)
+ *     baseDomain?      : string        // ví dụ 'https://example.com/'
+ *                                  // Dùng để phân loại liên kết Nội bộ vs
+ *                                  // Ngoài. Tự rút lui (fallback) nếu thiếu.
  *   }
  *
- * SCORING WEIGHTS (Total = 100):
- *   Basic            45 pts
- *     - KW in Title          15
- *     - KW in Meta Desc      10
- *     - KW in URL (slug)     10
- *     - KW in first 10%      10
+ * TRỌNG SỐ CHẤM ĐIỂM (Tổng = 100):
+ *   Cơ bản            45 điểm
+ *     - Từ khoá trong Tiêu đề          15
+ *     - Từ khoá trong Meta Desc        10
+ *     - Từ khoá trong URL (slug)       10
+ *     - Từ khoá trong 10% đầu          10
  *
- *   Additional       40 pts
- *     - KW in H2/H3          10
- *     - Image with KW in alt 10
- *     - Has Internal link    10
- *     - Has External link    10
+ *   Bổ sung           40 điểm
+ *     - Từ khoá trong H2/H3            10
+ *     - Ảnh có từ khoá trong alt       10
+ *     - Có liên kết nội bộ             10
+ *     - Có liên kết ngoài              10
  *
- *   Readability & Density 15 pts
- *     - Keyword Density 1%-2.5%  10
- *     - Title contains number    5
+ *   Khả năng đọc & Mật độ 15 điểm
+ *     - Mật độ từ khoá 1%-2.5%          10
+ *     - Tiêu đề chứa số                 5
  *
- *   The 45 + 40 + 15 = 100 budget is intentionally tight — passing all
- *   checks saturates the bar at 100. Tones: >=80 good, >=50 ok, else bad.
+ *   Ngân sách 45 + 40 + 15 = 100 được cố tình siết chặt — vượt qua tất cả
+ *   các tiêu chí sẽ đạt đủ 100. Mức điểm: >=80 tốt, >=50 khá, còn lại kém.
  */
 
 import {
@@ -55,37 +55,38 @@ import {
 } from './seoConstants.js';
 
 // ────────────────────────────────────────────────────────────────────────
-//  Helpers
+//  Trợ giúp (helpers)
 // ────────────────────────────────────────────────────────────────────────
 
-/** Normalise Vietnamese tone marks + lower-case + collapse whitespace.
- *  We NFD-strip combining marks so 'ố' and 'o' compare equal-ish when
- *  paired with diacritic-aware matching. Falls back to plain lower-case
- *  when Intl.Segmenter is missing (older browsers / SSR). */
+/** Chuẩn hoá dấu tiếng Việt + chuyển chữ thường + gộp khoảng trắng.
+ *  Ta tách tổ hợp dấu theo NFD để 'ố' và 'o' so sánh gần tương đương
+ *  khi kết hợp với so khớp không phân biệt dấu. Rút lui về chữ thường
+ *  thường khi thiếu Intl.Segmenter (trình duyệt cũ / SSR). */
 function norm(s) {
   return (s || '')
     .toString()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+    .replace(/[\u0300-\u036f]/g, '') // tách dấu (diacritics)
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-/** Build a word-boundary regex from a keyword. Returns null for empty/
- *  regex-unsafe input. Tones are normalised on both sides.
+/** Xây dựng regex ranh giới từ từ một từ khoá. Trả về null nếu đầu vào
+ *  rỗng / không an toàn cho regex. Dấu được chuẩn hoá ở cả hai bên.
  *
- *  Multi-word keywords ("nghiep vu bao mau") match the WHOLE phrase
- *  as a contiguous run with optional whitespace between tokens —
- *  NOT a disjunction that would let "nghiep" alone satisfy the check.
- *  That distinction is exactly what previous iterations got wrong. */
+ *  Từ khoá nhiều từ ("nghiep vu bao mau") khớp TOÀN BỘ cụm từ
+ *  như một chuỗi liên tục với khoảng trắng tuỳ ý giữa các từ —
+ *  KHÔNG phải phép tuyển (disjunction) khiến chỉ riêng "nghiep"
+ *  cũng đạt yêu cầu. Chính sự khác biệt đó là thứ các phiên bản
+ *  trước đã làm sai. */
 function buildKwRegex(keyword) {
   const normKw = norm(keyword);
   if (!normKw) return null;
   const escaped = normKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const parts = escaped.split(/\s+/).filter(Boolean);
-  // `\s+` between tokens tolerates variable whitespace; the outer
-  // lookbehind/lookahead still keep "cat" from matching "category".
+  // `\s+` giữa các từ cho phép khoảng trắng thay đổi; lookbehind/
+  // lookahead bên ngoài vẫn ngăn "cat" khớp với "category".
   const inner = parts.length > 1
     ? `(${parts.join('\\s+')})`
     : parts[0];
@@ -96,47 +97,47 @@ function buildKwRegex(keyword) {
   }
 }
 
-/** Counts whole-word occurrences of `keyword` in `text`. Returns 0 for
- *  empty inputs or unsupported regex. Handles Vietnamese by
- *  diacritic-insensitive matching (both sides NFD-stripped). */
+/** Đếm số lần xuất hiện trọn từ của `keyword` trong `text`. Trả về 0 nếu
+ *  đầu vào rỗng hoặc regex không hỗ trợ. Xử lý tiếng Việt bằng cách
+ *  so khớp không phân biệt dấu (cả hai bên đều tách NFD). */
 function countOccurrences(text, keyword) {
   const re = buildKwRegex(keyword);
   if (!re) return 0;
-  // Match on normalised text so diacritics collapse on both sides.
+  // So khớp trên văn bản đã chuẩn hoá để dấu biến mất ở cả hai bên.
   const matches = norm(text).match(re);
   return matches ? matches.length : 0;
 }
 
-/** Whole-word presence check. */
+/** Kiểm tra sự hiện diện trọn từ. */
 function exactMatch(text, keyword) {
   return countOccurrences(text, keyword) > 0;
 }
 
-/** Tokenise text into words (used for density). Numbers count too. */
+/** Tách văn bản thành các từ (dùng cho mật độ từ khoá). Số cũng được tính. */
 function tokeniseWords(text) {
   if (!text) return [];
   return norm(text).match(/[\p{L}\p{N}]+/gu) || [];
 }
 
-/* ─── HTML structure extraction ────────────────────────────────────────
- * We deliberately use DOMParser (browser) so we can pull <a>, <img>, and
- * heading text without bringing in a 200kB HTML parser. On the server /
- * in Node tests we transparently fall back to a regex-based extractor
- * that covers the common TinyMCE output (well-formed, single-line tags).
+/* ─── Trích xuất cấu trúc HTML ────────────────────────────────────────
+ * Ta cố ý dùng DOMParser (trình duyệt) để lấy <a>, <img> và văn bản tiêu
+ * đề mà không cần kéo theo bộ phân tích HTML 200kB. Trên server / trong
+ * test Node ta tự động rút lui về bộ trích xuất dựa trên regex
+ * bao phủ đầu ra TinyMCE thông thường (thẻ đơn dòng, hợp lệ).
  */
 
 function isBrowser() {
   return typeof window !== 'undefined' && typeof window.DOMParser !== 'undefined';
 }
 
-/** Pull all <a href="..."> values out of HTML. */
+/** Lấy toàn bộ giá trị <a href="..."> từ HTML. */
 function extractAnchorHrefs(html) {
   if (!html) return [];
   if (isBrowser()) {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return Array.from(doc.querySelectorAll('a[href]')).map((a) => a.getAttribute('href'));
   }
-  // Regex fallback: matches href values, single or double quoted.
+  // Rút lui bằng regex: khớp giá trị href, có thể nằm trong dấu nháy đơn hoặc kép.
   const out = [];
   const re = /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
   let m;
@@ -144,7 +145,7 @@ function extractAnchorHrefs(html) {
   return out;
 }
 
-/** Pull all <img alt="..."> values out of HTML. */
+/** Lấy toàn bộ giá trị <img alt="..."> từ HTML. */
 function extractImageAlts(html) {
   if (!html) return [];
   if (isBrowser()) {
@@ -158,7 +159,7 @@ function extractImageAlts(html) {
   return out;
 }
 
-/** Pull inner text of H2 and H3 headings (case-insensitive tag match). */
+/** Lấy văn bản bên trong các tiêu đề H2 và H3 (khớp thẻ không phân biệt hoa thường). */
 function extractHeadingTexts(html, levels = [2, 3]) {
   if (!html) return [];
   const tags = levels.map((l) => `h${l}`).join('|');
@@ -166,9 +167,9 @@ function extractHeadingTexts(html, levels = [2, 3]) {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return Array.from(doc.querySelectorAll(levels.map((l) => `h${l}`).join(','))).map((el) => el.textContent || '');
   }
-  // Regex fallback: capture everything between <hN ...> and </hN>.
-  // tag alternation must be INSIDE the group, not as a comma-list
-  // (which would only match the literal string "h2,h3").
+  // Rút lui bằng regex: lấy toàn bộ nội dung giữa <hN ...> và </hN>.
+  // Dấu | giữa các thẻ phải NẰM TRONG nhóm, không được viết dạng danh
+  // sách cách nhau bằng dấu phẩy (vì chỉ khớp đúng chuỗi "h2,h3").
   const out = [];
   const re = new RegExp(`<(${tags})\\b[^>]*>([\\s\\S]*?)<\\/\\1>`, 'gi');
   let m;
@@ -178,9 +179,9 @@ function extractHeadingTexts(html, levels = [2, 3]) {
   return out;
 }
 
-/** Strip HTML to plain text — only used for length / density math, not
- *  for keyword presence (which uses raw HTML so <h2><strong>kw</strong>
- *  </h2> still counts as kw appearing inside an H2). */
+/** Bỏ thẻ HTML để lấy văn bản thường — chỉ dùng cho tính độ dài / mật độ,
+ *  không dùng cho kiểm tra từ khoá (vốn dùng HTML thô để <h2><strong>kw
+ *  </strong></h2> vẫn được tính là kw xuất hiện trong H2). */
 function htmlToText(html) {
   if (!html) return '';
   if (isBrowser()) {
@@ -194,28 +195,28 @@ function htmlToText(html) {
     .trim();
 }
 
-/** Classify a single href as internal / external / other.
- *  Internal: matches `baseDomain` host (when provided), OR is a relative
- *  path, fragment, or mailto-less absolute link to the same origin. */
+/** Phân loại một href là nội bộ / ngoài / khác.
+ *  Nội bộ: khớp host của `baseDomain` (nếu được cung cấp), HOẶC là đường
+ *  dẫn tương đối, mảnh (fragment), hay liên kết tuyệt đối cùng origin. */
 function classifyHref(href, baseDomain) {
   if (!href) return 'other';
   const trimmed = href.trim();
 
-  // Skip non-navigating anchors
+  // Bỏ qua các neo không điều hướng
   if (trimmed.startsWith('#') || trimmed.startsWith('mailto:') || trimmed.startsWith('tel:')) {
     return 'other';
   }
 
-  // Pure relative path -> internal
+  // Đường dẫn tương đối thuần tuý -> nội bộ
   if (trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
     return 'internal';
   }
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
-    // No scheme at all (e.g. "about", "post-1") -> treat as internal
+    // Không có scheme (ví dụ "about", "post-1") -> coi là nội bộ
     return 'internal';
   }
 
-  // Absolute URL — compare hosts.
+  // URL tuyệt đối — so sánh host.
   if (baseDomain) {
     try {
       const baseHost = new URL(baseDomain).host.toLowerCase();
@@ -224,26 +225,26 @@ function classifyHref(href, baseDomain) {
         return baseHost === linkHost ? 'internal' : 'external';
       }
     } catch {
-      /* fall through */
+      /* rơi xuống */
     }
   }
-  // No baseDomain (or URL parse failed) — best-effort guess.
+  // Không có baseDomain (hoặc phân tích URL thất bại) — đoán theo khả năng tốt nhất.
   return 'external';
 }
 
 // ────────────────────────────────────────────────────────────────────────
-//  Check definitions (id, section, label, fieldKey, weight, predicate)
+//  Định nghĩa tiêu chí (id, section, label, fieldKey, weight, predicate)
 // ────────────────────────────────────────────────────────────────────────
 
-/** One check. `weight` is how many points it adds when `predicate` returns
- *  true. The id/label are stable so the UI can render consistent copy. */
+/** Một tiêu chí. `weight` là số điểm cộng khi `predicate` trả về true.
+ *  id/label cố định để UI hiển thị nội dung nhất quán. */
 function makeCheck({ id, section, label, fieldKey, weight, predicate }) {
   const passed = !!predicate();
   return { id, section, label, passed, fieldKey, weight };
 }
 
 // ────────────────────────────────────────────────────────────────────────
-//  Public API
+//  API công khai
 // ────────────────────────────────────────────────────────────────────────
 
 export function calculateSeoScore(state) {
@@ -256,7 +257,7 @@ export function calculateSeoScore(state) {
 
   const primary = focusKeywords[0];
 
-  // ── Empty-state branch ─────────────────────────────────────────────
+  // ── Nhánh trạng thái rỗng ─────────────────────────────────────────
   if (!primary || !primary.trim()) {
     return {
       score: 0,
@@ -274,7 +275,7 @@ export function calculateSeoScore(state) {
     };
   }
 
-  // Pre-compute everything once per call.
+  // Tính toán sẵn mọi thứ một lần mỗi lần gọi.
   const titleNorm = norm(metaTitle);
   const descNorm  = norm(metaDescription);
   const slugNorm  = norm(slug);
@@ -306,9 +307,9 @@ export function calculateSeoScore(state) {
   const densityOk    = density >= 1 && density <= 2.5;
   const titleHasNum  = /\d/.test(metaTitle);
 
-  // ── Build weighted checks ──────────────────────────────────────────
+  // ── Xây dựng các tiêu chí có trọng số ──────────────────────────────
   const checks = [
-    // ── Basic (45 pts) ────────────────────────────────────────────────
+    // ── Cơ bản (45 điểm) ────────────────────────────────────────────────
     makeCheck({
       id: 'title-has-kw',
       section: 'basic',
@@ -342,7 +343,7 @@ export function calculateSeoScore(state) {
       predicate: () => first10Pct.length > 0 && exactMatch(first10Pct, primary),
     }),
 
-    // ── Additional (40 pts) ───────────────────────────────────────────
+    // ── Bổ sung (40 điểm) ───────────────────────────────────────────────
     makeCheck({
       id: 'kw-in-headings',
       section: 'additional',
@@ -376,7 +377,7 @@ export function calculateSeoScore(state) {
       predicate: () => linkKinds.external > 0,
     }),
 
-    // ── Readability & Density (15 pts) ────────────────────────────────
+    // ── Khả năng đọc & Mật độ (15 điểm) ─────────────────────────────────
     makeCheck({
       id: 'keyword-density',
       section: 'readability',
@@ -398,10 +399,10 @@ export function calculateSeoScore(state) {
     }),
   ];
 
-  // ── Aggregate ──────────────────────────────────────────────────────
-  // Score is the sum of weights of passed checks. We cap at 100 because
-  // weights already total exactly 100 (45 + 40 + 15), but defensive cap
-  // means future tweaks can't accidentally push the badge into 120/100.
+  // ── Tổng hợp ──────────────────────────────────────────────────────
+  // Điểm là tổng trọng số của các tiêu chí đạt. Ta chặn ở 100 vì trọng số
+  // đã cộng đúng 100 (45 + 40 + 15), nhưng chặn phòng thủ giúp các điều
+  // chỉnh tương lai không vô tình đẩy huy hiệu lên 120/100.
   const score = Math.min(
     100,
     Math.round(checks.reduce((sum, c) => sum + (c.passed ? c.weight : 0), 0)),
@@ -415,8 +416,8 @@ export function calculateSeoScore(state) {
 }
 
 // ────────────────────────────────────────────────────────────────────────
-//  groupChecksBySection — unchanged signature, kept here so consumers can
-//  import both helpers from the same module. (Also re-exported via index.js.)
+//  groupChecksBySection — chữ ký không đổi, giữ tại đây để bên tiêu thụ
+//  import cả hai hàm trợ giúp từ cùng một module. (Cũng được re-export qua index.js.)
 // ────────────────────────────────────────────────────────────────────────
 
 export function groupChecksBySection(checks, sections) {

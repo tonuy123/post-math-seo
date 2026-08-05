@@ -1,5 +1,5 @@
 /**
- * Posts hook — wraps the postsApi with React state, refresh, and pagination.
+ * Posts hook — bọc postsApi với state React, refresh và phân trang.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { postsApi } from '../services/api/posts';

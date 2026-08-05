@@ -1,8 +1,8 @@
 ﻿/**
- * Axios API client.
- * - baseURL is taken from VITE_API_BASE_URL (defaults to "/api/v1")
- * - Auto-attaches Authorization: Bearer <token> when available
- * - Normalizes errors into { status, message, raw }
+ * Axios API client (bọc axios cho toàn bộ request).
+ * - baseURL được lấy từ VITE_API_BASE_URL (mặc định "/api/v1")
+ * - Tự gắn Authorization: Bearer <token> khi có
+ * - Chuẩn hoá lỗi thành { status, message, raw }
  */
 import axios from 'axios';
 import { tokenStore } from '../storage';
@@ -34,8 +34,8 @@ api.interceptors.response.use(
       error.message ||
       'Request failed';
 
-    // 401 globally: clear token and broadcast a logout event so any
-    // subscribed store (e.g. AuthContext) can re-evaluate immediately.
+    // 401 trên toàn cục: xoá token và phát sự kiện đăng xuất để mọi
+    // store đã đăng ký (ví dụ AuthContext) có thể đánh giá lại ngay lập tức.
     if (status === 401) {
       tokenStore.clear();
       if (typeof window !== 'undefined') {

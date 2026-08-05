@@ -1,22 +1,22 @@
 /**
  * ============================================================================
- *  Auth Middleware
+ *  Middleware Auth
  * ============================================================================
- *  Verifies a Firebase ID token passed as `Authorization: Bearer <token>`.
- *  On success, attaches a normalized `req.user` object:
+ *  Xác minh Firebase ID token truyền qua `Authorization: Bearer <token>`.
+ *  Khi thành công, gắn đối tượng `req.user` đã chuẩn hoá:
  *      { uid, email, role, username, avatar }
  *
- *  The `role` / `username` / `avatar` fields come from the matching user
- *  document in Firestore (keyed by `uid`). The mapping `authUid -> username`
- *  lets us keep the legacy `users` collection intact while using real
- *  Firebase Authentication on the client (Phase 3).
+ *  Các field `role` / `username` / `avatar` lấy từ user document tương ứng
+ *  trong Firestore (khoá theo `uid`). Ánh xạ `authUid -> username` giúp
+ *  giữ nguyên collection `users` cũ trong khi client dùng Firebase
+ *  Authentication thật (Phase 3).
  *
- *  NOTE: For the initial Phase 2 build, we also support a **dev login**
- *  fallback where the client posts `{ username, password }` to /auth/login
- *  and receives a short-lived JWT signed by the server. The middleware then
- *  verifies that JWT instead. This keeps the migration smooth: legacy
- *  clients can keep posting username/password, and Phase 3 will switch to
- *  Firebase Auth without server changes.
+ *  LƯU Ý: Với bản dựng Phase 2 ban đầu, chúng ta cũng hỗ trợ fallback
+ *  **dev login** khi client gửi `{ username, password }` tới /auth/login
+ *  và nhận về JWT ngắn hạn do server ký. Middleware sau đó xác minh JWT
+ *  này thay cho Firebase. Điều này giúp migration trơn tru: client cũ
+ *  vẫn gửi username/password như trước, và Phase 3 sẽ chuyển sang
+ *  Firebase Auth mà không cần sửa server.
  * ============================================================================
  */
 
@@ -45,8 +45,8 @@ async function loadUserDocByField(field, value) {
 }
 
 /**
- * Express middleware: verifies the request is authenticated.
- * Accepts either:
+ * Express middleware: xác minh request đã được xác thực.
+ * Chấp nhận một trong hai:
  *   1. `Authorization: Bearer <firebaseIdToken>`
  *   2. `Authorization: Bearer <jwtIssuedByServer>`
  */
@@ -66,10 +66,10 @@ async function authRequired(req, res, next) {
     let userDoc = null;
     let fbVerifyError = null;
 
-    // 1) Try Firebase ID token first. Only fall through to JWT if the
-    //    *verification* itself fails — NOT if the user lookup fails,
-    //    otherwise a valid Firebase token could resolve to a different
-    //    account via the JWT branch.
+    // 1) Thử Firebase ID token trước. Chỉ fallback sang JWT nếu bản thân
+    //    bước *xác minh* thất bại — KHÔNG phải khi tra cứu user thất bại,
+    //    nếu không một Firebase token hợp lệ có thể trỏ tới một
+    //    tài khoản khác qua nhánh JWT.
     try {
       claims = await verifyFirebaseIdToken(token);
     } catch (e) {
@@ -79,7 +79,7 @@ async function authRequired(req, res, next) {
     if (claims) {
       userDoc = await loadUserDocByField('uid', claims.uid);
     } else {
-      // 2) Fall back to server-issued JWT (legacy dev login).
+      // 2) Fallback sang JWT do server phát hành (dev login kế thừa bản cũ).
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
         userDoc = await loadUserDocByField('username', decoded.username);
@@ -90,7 +90,7 @@ async function authRequired(req, res, next) {
           message: 'Invalid or expired token',
         });
       }
-      // fbVerifyError is unused in this path; intentionally discarded.
+      // fbVerifyError không dùng ở nhánh này; cố ý bỏ qua.
       void fbVerifyError;
     }
 

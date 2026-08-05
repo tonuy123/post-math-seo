@@ -1,5 +1,5 @@
 /**
- * Small button component with variants (primary/secondary/danger/ghost) and sizes.
+ * Component nút nhỏ với các biến thể (primary/secondary/danger/ghost) và kích thước.
  */
 import { forwardRef } from 'react';
 

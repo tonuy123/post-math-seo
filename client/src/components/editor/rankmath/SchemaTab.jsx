@@ -3,15 +3,15 @@ import { Select } from '../../ui/Input';
 import { Wand2 } from 'lucide-react';
 
 /**
- * <SchemaTab /> — "Schema" tab.
- * Mirrors the WordPress Rank Math "Schema" tab (slim version):
- *   • Description blurb
- *   • Schema type select (Article / Product / Event / Recipe)
- *   • "Schema Generator" button stub
+ * <SchemaTab /> — tab "Schema".
+ * Phản chiếu tab "Schema" của WordPress Rank Math (bản gọn):
+ *   • Đoạn mô tả ngắn
+ *   • Select loại Schema (Bài viết / Sản phẩm / Sự kiện / Công thức nấu ăn)
+ *   • Nút "Trình tạo Schema" dạng stub
  *
- * Controlled: receives `value` (current schemaType) and `onChange(type)`.
- * `onOpenGenerator` is optional — if provided, the button calls it
- * (handy when the host app wants to open a full schema builder modal).
+ * Controlled: nhận `value` (schemaType hiện tại) và `onChange(type)`.
+ * `onOpenGenerator` là tuỳ chọn — nếu được cung cấp, nút sẽ gọi nó
+ * (hữu ích khi ứng dụng chủ muốn mở modal xây dựng schema đầy đủ).
  */
 const SCHEMA_TYPES = [
   { value: 'article', label: 'Bài viết' },
@@ -28,13 +28,9 @@ export function SchemaTab({ value, onChange, onOpenGenerator }) {
     const next = e.target.value;
     setLocalType(next);
     onChange?.(next);
-    // eslint-disable-next-line no-console
-    console.log('[SchemaTab] schemaType →', next);
   };
 
   const handleOpenGenerator = () => {
-    // eslint-disable-next-line no-console
-    console.log('[SchemaTab] open Schema Generator for type:', current);
     onOpenGenerator?.(current);
   };
 

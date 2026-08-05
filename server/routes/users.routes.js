@@ -7,17 +7,17 @@ const { requireRole } = require('../middlewares/requireRole');
 
 const adminManager = requireRole('admin', 'manager');
 
-// All user routes require authentication.
+// Mọi route user đều yêu cầu xác thực.
 router.use(authRequired);
 
-// Current user (always allowed when authenticated).
+// User hiện tại (luôn được phép khi đã đăng nhập).
 router.get('/me', ctrl.me);
 
-// Management endpoints — only admin and manager.
+// Các endpoint quản lý — chỉ admin và manager.
 router.get('/', adminManager, ctrl.list);
 router.get('/:id', adminManager, ctrl.getOne);
 router.post('/', adminManager, ctrl.create);
-router.put('/:id', ctrl.update); // service handles self/role rules
+router.put('/:id', ctrl.update); // service xử lý quy tắc self/role
 router.delete('/:id', adminManager, ctrl.remove);
 
 module.exports = router;

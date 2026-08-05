@@ -1,19 +1,19 @@
 /**
- * TinyMCE wrapper hook. Mirrors the legacy `initializeTinyMCE()` config
+ * Hook bọc TinyMCE. Sao chép từ cấu hình `initializeTinyMCE()` cũ
  * (height, plugins, toolbar, content_style).
  *
- * Cleanup contract (CRITICAL — prevents the floating toolbar from
- * remaining in document.body after the React tree is unmounted):
- *   1. `window.tinymce.remove(selector)` — destroy the editor bound to
- *      our textarea.
- *   2. `window.tinymce.remove()` — nuclear sweep that destroys ANY
- *      remaining orphaned editor instances (defensive — covers the case
- *      where a re-init left a previous instance dangling).
- *   3. Manually remove the floating UI nodes that TinyMCE injects into
+ * Hợp đồng dọn dẹp (QUAN TRỌNG — ngăn toolbar nổi
+ * còn sót lại trong document.body sau khi cây React bị tháo gỡ):
+ *   1. `window.tinymce.remove(selector)` — phá huỷ editor gắn với
+ *      textarea của chúng ta.
+ *   2. `window.tinymce.remove()` — quét diện rộng phá huỷ MỌI
+ *      instance editor mồ côi còn sót (phòng thủ — bao phủ trường hợp
+ *      việc khởi tạo lại để lại instance trước đó lơ lửng).
+ *   3. Tự tay xoá các node UI nổi mà TinyMCE chèn vào
  *      document.body: `.tox-toolbar`, `.tox-toolbar-overlord`,
  *      `.tox-pop`, `.tox-menuwrapper`, `.tox-collection`,
- *      `.tox-tinymce-aux`, `.tox-shadowhost`. These are NOT children of
- *      the editor root and survive `tinymce.remove()` in some scenarios.
+ *      `.tox-tinymce-aux`, `.tox-shadowhost`. Đây KHÔNG phải là con của
+ *      editor root và chúng sống sót sau `tinymce.remove()` trong một số tình huống.
  */
 import { useEffect, useRef } from 'react';
 
@@ -47,9 +47,9 @@ const TINYMCE_OPTIONS = {
   quickbars_insert_toolbar: 'quickimage quicktable',
 };
 
-// Nodes that TinyMCE injects directly into document.body. Removing them
-// by class name is safe because TinyMCE is the only library in this
-// project that uses the `.tox-*` namespace.
+// Các node mà TinyMCE chèn trực tiếp vào document.body. Xoá chúng
+// theo tên class là an toàn vì TinyMCE là thư viện duy nhất trong
+// project này dùng namespace `.tox-*`.
 const TOX_AUX_SELECTORS = [
   '.tox-toolbar',
   '.tox-toolbar-overlord',
@@ -62,32 +62,32 @@ const TOX_AUX_SELECTORS = [
 ];
 
 /**
- * Tear down every TinyMCE-related node that may have escaped into
- * document.body. Idempotent — safe to call multiple times.
+ * Dọn sạch mọi node liên quan đến TinyMCE có thể đã thoát ra
+ * document.body. Có tính idempotent — an toàn khi gọi nhiều lần.
  */
 function removeOrphanedTinyMCEDOM() {
   if (typeof document === 'undefined') return;
   const body = document.body;
   if (!body) return;
 
-  // 1) Destroy every editor instance the global still knows about.
+  // 1) Phá huỷ mọi instance editor mà global vẫn còn biết đến.
   if (window.tinymce && typeof window.tinymce.remove === 'function') {
     try {
-      // No-arg form destroys ALL editors. Use it as the ultimate safety
-      // net so a half-initialised instance can't keep its toolbar alive.
+      // Dạng không tham số phá huỷ TẤT CẢ editor. Dùng nó như lưới an toàn
+      // cuối cùng để một instance khởi tạo dở dang không thể giữ toolbar sống.
       window.tinymce.remove();
     } catch {
-      /* editor may already be gone — ignore */
+      /* editor có thể đã biến mất — bỏ qua */
     }
   }
 
-  // 2) Sweep any auxiliary containers that TinyMCE appended to <body>
-  // but did not clean up (the toolbar/popover injection pattern).
+  // 2) Quét mọi container phụ trợ mà TinyMCE chèn vào <body>
+  // nhưng không dọn dẹp (mẫu chèn toolbar/popover).
   TOX_AUX_SELECTORS.forEach((sel) => {
     body.querySelectorAll(sel).forEach((node) => {
-      // Only nuke nodes that either have a `tox-` class or are direct
-      // children of <body>. Guards against accidentally removing
-      // unrelated DOM that happens to match.
+      // Chỉ phá những node có class `tox-` hoặc là con trực tiếp
+      // của <body>. Tránh vô tình xoá
+      // các DOM không liên quan tình cờ khớp.
       const cls = (node.className && node.className.toString()) || '';
       const isTox = cls.indexOf('tox-') !== -1;
       const isBodyChild = node.parentElement === body;
@@ -115,16 +115,16 @@ export function useTinyMCE({ selector, initialContent = '' }) {
         setup(editor) {
           editor.on('init', () => {
             if (cancelled) {
-              // Component unmounted while TinyMCE was initialising —
-              // destroy the editor immediately so its toolbar never
-              // reaches document.body.
-              try { editor.remove(); } catch { /* ignore */ }
+              // Component bị tháo gỡ trong khi TinyMCE đang khởi tạo —
+              // phá huỷ editor ngay lập tức để toolbar không bao giờ
+              // lọt vào document.body.
+              try { editor.remove(); } catch { /* bỏ qua */ }
               return;
             }
             try {
               editor.setContent(pendingRef.current || '');
             } catch {
-              /* editor may have been torn down — ignore */
+              /* editor có thể đã bị phá huỷ — bỏ qua */
             }
             editorRef.current = editor;
           });
@@ -140,10 +140,10 @@ export function useTinyMCE({ selector, initialContent = '' }) {
       return () => {
         cancelled = true;
         clearInterval(interval);
-        // Targeted destroy first (covers the typical hot path).
-        try { window.tinymce?.remove?.(selector); } catch { /* noop */ }
-        // Then a full sweep so any toolbar already injected into body
-        // is removed even if the editor itself never finished booting.
+        // Phá huỷ có chủ đích trước (bao phủ luồng thường gặp).
+        try { window.tinymce?.remove?.(selector); } catch { /* không làm gì */ }
+        // Sau đó quét toàn bộ để mọi toolbar đã chèn vào body
+        // đều bị gỡ ngay cả khi editor chưa bao giờ khởi động xong.
         removeOrphanedTinyMCEDOM();
         editorRef.current = null;
       };
@@ -151,10 +151,10 @@ export function useTinyMCE({ selector, initialContent = '' }) {
 
     return () => {
       cancelled = true;
-      // Targeted destroy.
-      try { window.tinymce?.remove?.(selector); } catch { /* noop */ }
-      // Full sweep for the floating UI nodes TinyMCE injects into
-      // document.body. Without this the toolbar survives navigation.
+      // Phá huỷ có chủ đích.
+      try { window.tinymce?.remove?.(selector); } catch { /* không làm gì */ }
+      // Quét toàn bộ các node UI nổi mà TinyMCE chèn vào
+      // document.body. Nếu không có bước này, toolbar sẽ sống sót sau điều hướng.
       removeOrphanedTinyMCEDOM();
       editorRef.current = null;
     };
@@ -165,9 +165,9 @@ export function useTinyMCE({ selector, initialContent = '' }) {
   const setContent = (html) => {
     const value = html ?? '';
     if (editorRef.current?.setContent) {
-      try { editorRef.current.setContent(value); } catch { /* ignore */ }
+      try { editorRef.current.setContent(value); } catch { /* bỏ qua */ }
     } else {
-      // Editor not ready yet — stash so the init handler picks it up.
+      // Editor chưa sẵn sàng — lưu tạm để handler init nhặt nó lên.
       pendingRef.current = value;
     }
   };

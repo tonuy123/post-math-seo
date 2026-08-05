@@ -1,10 +1,10 @@
 /**
- * Auth controller — login, get current user (me).
+ * Controller auth — đăng nhập, lấy user hiện tại (me).
  *
- * Note: the legacy monolithic app had no real logout endpoint (it just
- * cleared localStorage). Phase 3 client will clear its own session; the
- * server stays stateless. We still expose /auth/logout for symmetry — it
- * simply returns 204 so the client can use it as a hook if desired.
+ * Lưu ý: app monolithic cũ không có endpoint logout thực sự (nó chỉ xoá
+ * localStorage). Client Phase 3 sẽ tự xoá session của mình; server vẫn
+ * stateless. Chúng ta vẫn expose /auth/logout để đối xứng — nó chỉ
+ * trả về 204 để client có thể dùng làm hook nếu muốn.
  */
 const usersService = require('../services/users.service');
 const { signSessionToken } = require('../middlewares/authRequired');
@@ -36,7 +36,7 @@ async function me(req, res) {
 }
 
 async function logout(req, res) {
-  // Stateless server — client drops its token. Endpoint exists for parity.
+  // Server stateless — client tự vứt token. Endpoint tồn tại cho sự đối xứng.
   return res.status(204).send();
 }
 

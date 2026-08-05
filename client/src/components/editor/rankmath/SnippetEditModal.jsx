@@ -9,36 +9,36 @@ import {
 } from './lib/seoConstants';
 
 /**
- * Modal form for editing the SERP snippet fields.
+ * Modal chỉnh sửa các trường đoạn trích SERP.
  *
- * Layout (top → bottom):
- *   1. Header — title + close X
- *   2. Live SERP preview (Google-style card that mirrors the inputs)
- *   3. Inputs — Title, Permalink, Description
- *        Each text input has a coloured progress bar + char counter,
- *        and gray helper text underneath.
+ * Bố cục (từ trên xuống dưới):
+ *   1. Đầu trang — tiêu đề + nút X đóng
+ *   2. Bản xem trước SERP trực tiếp (thẻ phong cách Google phản chiếu các input)
+ *   3. Các input — Tiêu đề, Đường dẫn tĩnh, Mô tả
+ *        Mỗi input văn bản có thanh tiến trình màu + bộ đếm ký tự,
+ *        và văn bản gợi ý màu xám bên dưới.
  *
  * Props:
  *   - open       : boolean
  *   - onClose    : () => void
  *   - value      : { metaTitle, metaDescription, slug }
  *   - onSave     : (next) => void
- *   - baseDomain : string  (used in the SERP URL preview, optional)
+ *   - baseDomain : string  (dùng trong bản xem trước URL SERP, tuỳ chọn)
  *
- * The modal owns a LOCAL DRAFT so the user can cancel without
- * polluting parent state. On Save, commits back via onSave.
+ * Modal sở hữu BẢN NHÁP CỤC BỘ (LOCAL DRAFT) để người dùng có thể huỷ mà
+ * không làm bẩn state của component chủ. Khi Lưu, commit ngược qua onSave.
  */
 
-/* ── Progress-bar helpers ───────────────────────────────────────────── */
+/* ── Các hàm trợ giúp thanh tiến trình ──────────────────────────────── */
 
 /**
- * Returns a tailwind colour class for the progress-bar fill, based on
- * how the current length compares to the optimal range.
+ * Trả về class màu tailwind cho phần tô của thanh tiến trình, dựa trên
+ * độ dài hiện tại so với khoảng tối ưu.
  *
- * Rules (per the spec):
- *   • empty / way too long  → red
- *   • close but not optimal → orange / yellow
- *   • in optimal range      → green
+ * Quy tắc (theo đặc tả):
+ *   • rỗng / quá dài        → đỏ
+ *   • gần nhưng chưa tối ưu  → cam / vàng
+ *   • trong khoảng tối ưu    → xanh lá
  */
 function lengthTone(len, min, max) {
   if (len === 0)              return 'bg-gray-300';
@@ -49,7 +49,7 @@ function lengthTone(len, min, max) {
   return 'bg-red-500';
 }
 
-/** Text colour for the counter, mirrors the same semantics as the bar. */
+/** Màu chữ cho bộ đếm, phản chiếu cùng ngữ nghĩa với thanh. */
 function counterTone(len, min, max) {
   if (len === 0)              return 'text-ink-muted';
   if (len < min * 0.6)        return 'text-red-600';
@@ -59,7 +59,7 @@ function counterTone(len, min, max) {
   return 'text-red-600';
 }
 
-/* ── Small reusable sub-component for a text-field + progress bar ── */
+/* ── Component con tái sử dụng nhỏ cho ô văn bản + thanh tiến trình ── */
 
 function LengthMeter({ value, min, max }) {
   const len = value.length;
@@ -83,26 +83,26 @@ function LengthMeter({ value, min, max }) {
   );
 }
 
-/* ── Main modal ────────────────────────────────────────────────────── */
+/* ── Modal chính ───────────────────────────────────────────────────── */
 
 export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState(value || {});
   const titleRef = useRef(null);
 
-  // Sync local draft whenever the modal opens with a new value.
+  // Đồng bộ bản nháp cục bộ mỗi khi modal mở với value mới.
   useEffect(() => {
     if (open) setDraft(value || {});
   }, [open, value]);
 
-  // Focus the first field when opened.
+  // Focus vào trường đầu tiên khi modal mở.
   useEffect(() => {
     if (!open) return;
     const id = setTimeout(() => titleRef.current?.focus(), 30);
     return () => clearTimeout(id);
   }, [open]);
 
-  // Close on ESC.
+  // Đóng khi bấm ESC.
   useEffect(() => {
     if (!open) return;
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -110,7 +110,7 @@ export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // Live SERP URL — mirrors the real Google result path.
+  // URL SERP trực tiếp — phản chiếu đường dẫn kết quả Google thật.
   const fullUrl = useMemo(() => {
     const base = baseDomain || 'https://example.com/';
     const slug = (draft.slug || '').replace(/^\/+/, '');
@@ -139,7 +139,7 @@ export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
     >
       <div className="w-full sm:max-w-3xl bg-white rounded-t sm:rounded shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
 
-        {/* ── Header ───────────────────────────────────────────────── */}
+        {/* ── Đầu trang ──────────────────────────────────────────────── */}
         <header className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-[#f6f7f7]">
           <h3 id="snippet-modal-title" className="text-sm font-semibold text-ink-primary">
             {t('editSnippet', 'Chỉnh sửa đoạn trích')}
@@ -156,10 +156,10 @@ export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
 
         <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
 
-          {/* ── Scrollable body ───────────────────────────────────── */}
+          {/* ── Phần thân cuộn được ────────────────────────────────── */}
           <div className="p-5 flex flex-col gap-5 overflow-y-auto">
 
-            {/* ─── TOP: Live SERP Preview ─────────────────────────── */}
+            {/* ─── TRÊN CÙNG: Bản xem trước SERP trực tiếp ─────────── */}
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-ink-secondary mb-2">
                 Xem trước trên Google
@@ -169,13 +169,13 @@ export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
                 <div className="text-xs text-[#5f6368] truncate" dir="ltr">
                   {fullUrl}
                 </div>
-                {/* Title */}
+                {/* Tiêu đề */}
                 <div className="text-[#1a0dab] text-[20px] leading-[1.3] hover:underline cursor-pointer break-words mt-0.5 line-clamp-2">
                   {titleVal || (
                     <span className="italic text-ink-muted text-base">(chưa có tiêu đề SEO)</span>
                   )}
                 </div>
-                {/* Description */}
+                {/* Mô tả */}
                 <div className="text-[#4d5156] text-sm leading-snug mt-0.5 break-words line-clamp-2">
                   {descVal || (
                     <span className="italic text-ink-muted">(chưa có meta description)</span>
@@ -184,7 +184,7 @@ export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
               </div>
             </div>
 
-            {/* ─── BOTTOM: Input Forms ────────────────────────────── */}
+            {/* ─── DƯỚI CÙNG: Các biểu mẫu nhập ─────────────────────── */}
 
             {/* Title */}
             <div>
@@ -203,7 +203,7 @@ export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
               </p>
             </div>
 
-            {/* Permalink */}
+            {/* Đường dẫn tĩnh */}
             <div>
               <Label htmlFor="seo-slug">Đường dẫn URL</Label>
               <Input
@@ -236,7 +236,7 @@ export function SnippetEditModal({ open, onClose, value, onSave, baseDomain }) {
             </div>
           </div>
 
-          {/* ── Footer ────────────────────────────────────────────── */}
+          {/* ── Chân trang ───────────────────────────────────────────── */}
           <footer className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-[#f6f7f7]">
             <Button type="button" variant="secondary" size="md" onClick={onClose}>
               {t('cancel', 'Hủy')}

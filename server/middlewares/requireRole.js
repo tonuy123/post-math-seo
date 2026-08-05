@@ -1,6 +1,6 @@
 /**
- * RBAC guard.
- * Usage:  router.post('/foo', authRequired, requireRole('admin'), handler)
+ * Bảo vệ phân quyền RBAC.
+ * Cách dùng:  router.post('/foo', authRequired, requireRole('admin'), handler)
  *         router.get('/bar',  authRequired, requireRole('admin', 'manager'), handler)
  */
 function requireRole(...allowed) {

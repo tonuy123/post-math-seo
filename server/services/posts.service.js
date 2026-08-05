@@ -1,7 +1,7 @@
 /**
- * Posts service — wraps Firestore CRUD with business rules.
+ * Service posts — bọc CRUD Firestore kèm nghiệp vụ.
  *
- * Schema (mirrors legacy):
+ * Schema (mirror lại bản cũ):
  *   {
  *     title, slug, author, categories[], tags[],
  *     status: 'draft' | 'published' | 'private' | 'trashed',
@@ -61,7 +61,7 @@ function validatePayload(payload, { partial = false } = {}) {
     });
   }
   if (payload.featuredImage && payload.featuredImage.length > MAX_FEATURED_IMAGE_BYTES * 1.4) {
-    // Base64 is ~1.37x the binary size; this catches obvious oversize uploads.
+    // Base64 lớn hơn ~1.37 lần kích thước nhị phân; bước này bắt các upload vượt kích thước rõ ràng.
     errors.push('featuredImage exceeds 500 KB after Base64 encoding');
   }
   const ALLOWED_STATUSES = ['draft', 'published', 'private', 'trashed'];
@@ -136,6 +136,7 @@ async function createPost(payload, authorUsername) {
     content: payload.content || '',
     schedule: payload.schedule || '',
     featuredImage: payload.featuredImage || null,
+    seo: payload.seo || null,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
@@ -145,9 +146,9 @@ async function createPost(payload, authorUsername) {
   return getPost(ref.id);
 }
 
-// Fields the API client is allowed to mutate on a post. Anything else in
-// the payload (e.g. id, createdAt, author, deletedAt, previousStatus) is
-// silently dropped to prevent privilege escalation.
+// Các field mà API client được phép sửa trên một bài viết. Mọi field khác
+// trong payload (vd: id, createdAt, author, deletedAt, previousStatus) sẽ
+// bị loại bỏ âm thầm để chống leo thang đặc quyền.
 const UPDATABLE_POST_FIELDS = [
   'title', 'slug', 'categories', 'tags', 'status',
   'excerpt', 'content', 'schedule', 'featuredImage', 'seo',
@@ -214,7 +215,7 @@ async function bulkUpdate(ids, patch) {
 }
 
 async function bulkTrash(ids) {
-  // Stash previous status so we can restore to the right state later.
+  // Lưu lại status trước đó để sau này khôi phục đúng trạng thái.
   const tasks = ids.map(async (id) => {
     const p = await getPost(id);
     if (!p) return;
@@ -252,8 +253,8 @@ async function bulkPermanentDelete(ids) {
 }
 
 /**
- * Trash auto-clean: deletes any post whose status='trashed' AND deletedAt
- * is older than TRASH_RETENTION_HOURS. Mirrors legacy `autoCleanTrash()`.
+ * Tự dọn thùng rác: xoá mọi post có status='trashed' VÀ deletedAt
+ * cũ hơn TRASH_RETENTION_HOURS. Mirror lại `autoCleanTrash()` bản cũ.
  */
 async function autoCleanTrash({ retentionHours } = {}) {
   const hours = retentionHours || Number(process.env.TRASH_RETENTION_HOURS) || 24;

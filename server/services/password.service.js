@@ -1,11 +1,11 @@
 /**
- * Password hashing service.
- * Legacy code stored plaintext passwords — this is unacceptable.
- * Phase 2 hashes on save and verifies on login using bcryptjs.
+ * Service băm mật khẩu.
+ * Code cũ lưu mật khẩu dạng plaintext — điều này không thể chấp nhận được.
+ * Phase 2 băm khi lưu và xác minh khi đăng nhập bằng bcryptjs.
  *
- * Hashes are stored in the `password` field for backwards-compat with the
- * existing user documents. Plaintext values are detected and re-hashed on
- * successful login (see `verifyPassword`).
+ * Hash được lưu trong field `password` để tương thích ngược với các
+ * user documents hiện có. Giá trị plaintext được phát hiện và băm lại
+ * khi đăng nhập thành công (xem `verifyPassword`).
  */
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -20,10 +20,10 @@ async function hashPassword(plain) {
 }
 
 /**
- * Verifies a password against the stored hash.
- * - If `stored` looks like a bcrypt hash, uses bcrypt.compare.
- * - If `stored` is plaintext (legacy), compares directly and returns a flag
- *   indicating the password should be re-hashed on the next save.
+ * Xác minh mật khẩu so với hash đã lưu.
+ * - Nếu `stored` trông giống hash bcrypt, dùng bcrypt.compare.
+ * - Nếu `stored` là plaintext (bản cũ), so sánh trực tiếp và trả về cờ
+ *   cho biết mật khẩu cần được băm lại ở lần lưu tiếp theo.
  */
 async function verifyPassword(plain, stored) {
   if (!stored) return { ok: false, needsRehash: false };
@@ -35,8 +35,8 @@ async function verifyPassword(plain, stored) {
     return { ok, needsRehash: false };
   }
 
-  // Legacy plaintext branch — use constant-time compare to avoid timing
-  // leaks even during the brief rehash window.
+  // Nhánh plaintext kế thừa từ bản cũ — dùng so sánh thời gian hằng định để
+  // tránh rò rỉ timing ngay cả trong khoảng thời gian ngắn đang rehash.
   const a = Buffer.from(plain || '', 'utf8');
   const b = Buffer.from(stored, 'utf8');
   const ok = a.length === b.length && crypto.timingSafeEqual(a, b);

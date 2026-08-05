@@ -6,20 +6,20 @@ import { useTranslation } from 'react-i18next';
 import { KeywordManagerModal } from './KeywordManagerModal';
 
 /**
- * Multi-keyword pill input with a live score badge AND a Trend modal.
+ * Input từ khoá dạng viên (pill) đa từ khoá với huy hiệu điểm trực tiếp VÀ modal Trend.
  *
  * Props:
- *   - value         : string[]                 controlled array of keywords
+ *   - value         : string[]                 mảng từ khoá được điều khiển
  *   - onChange      : (next: string[]) => void
  *   - score         : { score, tone } | undefined
  *
- * Behaviour:
- *   - Primary keyword (index 0)  → green outline + ★ icon
- *   - Secondary keywords         → cycle through distinct colours
- *   - Type + Enter / comma       → commit immediately, clear draft
- *   - Type + click "+ Thêm"      → commit immediately, clear draft
- *   - Backspace on empty input   → pop the last pill
- *   - Trend button (right end)   → open <KeywordManagerModal />
+ * Hành vi:
+ *   - Từ khoá chính (vị trí 0)  → viền xanh lá + icon ★
+ *   - Từ khoá phụ                → xoay vòng qua các màu khác nhau
+ *   - Gõ + Enter / phẩy         → commit ngay, xoá bản nháp
+ *   - Gõ + bấm "+ Thêm"          → commit ngay, xoá bản nháp
+ *   - Backspace trên input rỗng  → bỏ viên cuối cùng
+ *   - Nút Trend (đầu bên phải)  → mở <KeywordManagerModal />
  */
 export function FocusKeywordInput({ value = [], onChange, score }) {
   const { t } = useTranslation();
@@ -45,7 +45,7 @@ export function FocusKeywordInput({ value = [], onChange, score }) {
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
-      // preventDefault stops any wrapping <form> from submitting.
+      // preventDefault ngăn mọi <form> bao quanh bị submit.
       e.preventDefault();
       commit(draft);
     } else if (e.key === 'Backspace' && draft === '' && value.length > 0) {
@@ -63,7 +63,7 @@ export function FocusKeywordInput({ value = [], onChange, score }) {
 
   return (
     <div>
-      {/* Label + live score */}
+      {/* Nhãn + điểm trực tiếp */}
       <div className="flex items-center justify-between mb-1.5">
         <label className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
           {t('focusKeywords')}
@@ -83,7 +83,7 @@ export function FocusKeywordInput({ value = [], onChange, score }) {
         )}
       </div>
 
-      {/* Pill + input container — single unified border */}
+      {/* Vùng chứa pill + input — một viền thống nhất */}
       <div
         className="flex flex-wrap items-center gap-1.5 min-h-[42px] px-2 py-1.5 rounded border border-wp-gray-dark bg-white focus-within:border-wp-blue focus-within:ring-2 focus-within:ring-wp-blue/20 transition"
         onClick={() => inputRef.current?.focus()}
@@ -124,7 +124,7 @@ export function FocusKeywordInput({ value = [], onChange, score }) {
           className="flex-1 min-w-[120px] px-1 py-0.5 text-sm bg-transparent outline-none placeholder:text-ink-muted"
         />
 
-        {/* "+ Thêm" — onMouseDown keeps focus so blur doesn't race the click */}
+        {/* "+ Thêm" — onMouseDown giữ focus để blur không đua với cú bấm */}
         {draft.trim() && (
           <button
             type="button"
@@ -140,7 +140,7 @@ export function FocusKeywordInput({ value = [], onChange, score }) {
           </button>
         )}
 
-        {/* Trend button — opens KeywordManagerModal */}
+        {/* Nút Trend — mở KeywordManagerModal */}
         <button
           type="button"
           onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -157,7 +157,7 @@ export function FocusKeywordInput({ value = [], onChange, score }) {
         Nhấn Enter hoặc dấu phẩy để thêm từ khoá. Backspace trên ô trống để xoá từ khoá cuối.
       </p>
 
-      {/* Modal — uncontrolled, owned until user clicks "use selected" */}
+      {/* Modal — không điều khiển, được sở hữu tới khi người dùng bấm "sử dụng từ khoá đã chọn" */}
       <KeywordManagerModal
         open={trendOpen}
         keywords={value}
@@ -171,14 +171,14 @@ export function FocusKeywordInput({ value = [], onChange, score }) {
   );
 }
 
-// ─── Palette ────────────────────────────────────────────────────────────
-//  Index 0 (primary) → solid green per Rank Math default.
-//  Indices 1..n cycle through accent colours so the pill row reads as
-//  "categorically distinct" rather than uniform.
+// ─── Bảng màu ────────────────────────────────────────────────────────────
+//  Vị trí 0 (chính) → xanh lá đặc theo mặc định của Rank Math.
+//  Các vị trí 1..n xoay vòng qua các màu nhấn để hàng pill trông
+//  "phân biệt theo nhóm" thay vì đồng nhất.
 const PALETTE = [
-  // primary — keep at index 0
+  // từ khoá chính — giữ ở vị trí 0
   { chip: 'border-wp-green text-wp-green bg-wp-green/10' },
-  // accents
+  // các màu nhấn
   { chip: 'border-wp-orange text-wp-orange bg-wp-orange/10' },
   { chip: 'border-purple-500 text-purple-700 bg-purple-500/10' },
   { chip: 'border-teal-500 text-teal-700 bg-teal-500/10' },

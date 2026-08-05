@@ -1,35 +1,35 @@
 /**
  * ============================================================================
- *  Application Constants (single source of truth)
+ *  Hằng số ứng dụng (nguồn sự thật duy nhất)
  * ============================================================================
- *  Mirrors the legacy `script.js` constants block. Any module that needs a
- *  collection name, role, or retention policy must import from here.
+ *  Mirror lại khối constants của `script.js` bản cũ. Mọi module cần tên
+ *  collection, role, hoặc chính sách lưu giữ phải import từ đây.
  * ============================================================================
  */
 
 module.exports = Object.freeze({
-  // Firestore collections
+  // Các collection Firestore
   POSTS_COLLECTION: process.env.FIRESTORE_POSTS_COLLECTION || 'posts',
   USERS_COLLECTION: process.env.FIRESTORE_USERS_COLLECTION || 'users',
 
-  // Roles
+  // Các role
   ROLES: Object.freeze({
     ADMIN: 'admin',
     MANAGER: 'manager',
     STAFF: 'staff',
   }),
 
-  // Image limits (Base64) — keep parity with legacy 500KB rule
+  // Giới hạn ảnh (Base64) — giữ đồng nhất với quy tắc 500KB bản cũ
   MAX_FEATURED_IMAGE_BYTES: Number(process.env.MAX_FEATURED_IMAGE_BYTES) || 524288,
 
-  // Trash
+  // Thùng rác
   TRASH_RETENTION_HOURS: Number(process.env.TRASH_RETENTION_HOURS) || 24,
 
-  // Domain (legacy hard-coded value)
+  // Domain (giá trị hard-code từ bản cũ)
   DEFAULT_BASE_DOMAIN:
     process.env.DEFAULT_BASE_DOMAIN || 'https://tuyensinh.quocteviet.edu.vn/',
 
-  // Post status values
+  // Các giá trị trạng thái post
   POST_STATUS: Object.freeze({
     DRAFT: 'draft',
     PUBLISHED: 'published',
@@ -37,7 +37,7 @@ module.exports = Object.freeze({
     TRASHED: 'trashed',
   }),
 
-  // Categories (mirrored from legacy index.html checkbox list)
+  // Categories (mirror từ danh sách checkbox của index.html bản cũ)
   CATEGORIES: Object.freeze([
     'Technology',
     'Lifestyle',
@@ -46,7 +46,7 @@ module.exports = Object.freeze({
     'Marketing',
   ]),
 
-  // Seed admin (only created on first boot if no admin user exists).
+  // Seed admin (chỉ tạo ở lần khởi động đầu nếu chưa tồn tại admin user nào).
   // Password BẮT BUỘC đọc từ process.env — không có default hardcode.
   // Server sẽ từ chối seed nếu thiếu SEED_ADMIN_PASSWORD.
   SEED_ADMIN_USERNAME: process.env.SEED_ADMIN_USERNAME || 'admin',

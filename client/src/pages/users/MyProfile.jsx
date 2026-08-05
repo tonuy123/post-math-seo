@@ -1,7 +1,7 @@
 /**
- * MyProfile — read-only card + edit form for the currently signed-in user.
- * Mirrors the legacy "My Profile" page. Re-uses the same edit logic that
- * UserManagement uses for its embedded profile card.
+ * MyProfile — thẻ chỉ đọc + form chỉnh sửa cho người dùng đang đăng nhập.
+ * Sao chép từ trang "My Profile" cũ. Tái sử dụng cùng logic chỉnh sửa mà
+ * UserManagement dùng cho thẻ hồ sơ nhúng của nó.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -35,8 +35,8 @@ export default function MyProfile() {
 
   function openEdit() {
     const initial = {
-      // API identifier = username (public convention). The Firebase
-      // UID stays in `firebaseUid` for any future server-side use.
+      // API identifier = username (quy ước công khai). Firebase
+      // UID nằm trong `firebaseUid` để dùng cho phía server sau này.
       id: me.username,
       firebaseUid: me.firebaseUid || me.id,
       username: me.username,

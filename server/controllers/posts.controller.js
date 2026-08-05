@@ -1,20 +1,20 @@
 /**
- * Posts controller — wires HTTP verbs to the posts service.
+ * Controller posts — nối các HTTP verb vào posts service.
  *
- * Routes (all require auth; only admin/manager/staff may mutate):
- *   GET    /posts              list with ?status=, ?author=, ?search=, ?category=
- *   POST   /posts              create
- *   GET    /posts/:id          fetch
- *   PUT    /posts/:id          update
- *   POST   /posts/:id/trash    soft delete
- *   POST   /posts/:id/restore  restore
- *   DELETE /posts/:id          permanent delete
+ * Routes (tất cả đều cần auth; chỉ admin/manager/staff được phép thay đổi):
+ *   GET    /posts              list với ?status=, ?author=, ?search=, ?category=
+ *   POST   /posts              tạo mới
+ *   GET    /posts/:id          lấy chi tiết
+ *   PUT    /posts/:id          cập nhật
+ *   POST   /posts/:id/trash    xoá mềm
+ *   POST   /posts/:id/restore  khôi phục
+ *   DELETE /posts/:id          xoá vĩnh viễn
  *   POST   /posts/bulk         { action: 'trash'|'restore'|'delete', ids: [] }
- *   POST   /posts/auto-clean   runs trash auto-clean (admin)
+ *   POST   /posts/auto-clean   chạy tự dọn thùng rác (admin)
  *
- * Public routes (no auth — for guest homepage):
- *   GET    /posts/public       list ONLY status='published' posts
- *   GET    /posts/public/:slug get single published post by slug
+ * Routes công khai (không cần auth — cho trang chủ khách):
+ *   GET    /posts/public       list CHỈ các post có status='published'
+ *   GET    /posts/public/:slug lấy bài published theo slug
  */
 const postsService = require('../services/posts.service');
 const ok = (res, data, message = 'OK') => res.status(200).json({ success: true, message, data });

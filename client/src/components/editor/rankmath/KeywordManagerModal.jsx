@@ -4,44 +4,44 @@ import {
 } from 'lucide-react';
 
 /**
- * Two-column modal: left = keyword manager, right = Google Trends placeholder.
+ * Modal hai cột: bên trái = trình quản lý từ khoá, bên phải = chỗ trống Google Trends.
  *
- * Local state machine:
- *   open=true   → draftKeywords seeded from `keywords` prop
- *   user edits  → only `draftKeywords` mutates
- *   user clicks "Close & use selected keywords" → calls `onSave(draftKeywords)`
- *   user clicks X / overlay / "Huỷ" / presses ESC → discards draft, calls `onClose`
+ * Máy trạng thái cục bộ:
+ *   open=true   → draftKeywords được khởi tạo từ prop `keywords`
+ *   người dùng sửa  → chỉ `draftKeywords` bị đột biến
+ *   người dùng bấm "Đóng & sử dụng các từ khoá đã chọn" → gọi `onSave(draftKeywords)`
+ *   người dùng bấm X / lớp phủ / "Huỷ" / nhấn ESC → vứt bản nháp, gọi `onClose`
  *
  * Props:
  *   open       : boolean
- *   keywords   : string[]   current upstream value (strings only)
+ *   keywords   : string[]   value hiện tại từ phía trên (chỉ chuỗi)
  *   onClose    : () => void
- *   onSave     : (next: string[]) => void   receives the FINAL string[]
+ *   onSave     : (next: string[]) => void   nhận string[] CUỐI CÙNG
  *
- * Internal draft shape:
+ * Hình dạng bản nháp nội bộ:
  *   draftKeywords : Array<{ text: string, checked: boolean }>
- *   Keeping `checked` co-located with `text` avoids the Set-out-of-sync
- *   bug class and lets the save handler map/filter in one pass.
+ *   Giữ `checked` nằm cạnh `text` tránh được lớp lỗi Set-mất-đồng-bộ
+ *   và cho phép handler lưu map/filter trong một lần duyệt.
  */
 export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
-  // Local draft — never escapes the modal until "Close & use …".
+  // Bản nháp cục bộ — không bao giờ thoát khỏi modal cho tới khi "Đóng & sử dụng …".
   const [draft, setDraft]           = useState(() => toDraft(keywords));
   const [input, setInput]           = useState('');
   const [trendLoading, setLoading]  = useState(true);
   const addInputRef                 = useRef(null);
 
-  // Reseed draft each time the modal re-opens.
+  // Khởi tạo lại bản nháp mỗi khi modal mở lại.
   useEffect(() => {
     if (!open) return;
     setDraft(toDraft(keywords));
     setInput('');
-    // Simulate a chart fetch.
+    // Giả lập việc tải biểu đồ.
     setLoading(true);
     const t = setTimeout(() => setLoading(false), 1200);
     return () => clearTimeout(t);
   }, [open, keywords]);
 
-  // ESC closes.
+  // ESC đóng modal.
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -51,7 +51,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
 
   if (!open) return null;
 
-  /* ── mutations ────────────────────────────────────────────────────── */
+  /* ── các thao tác đột biến ────────────────────────────────────────── */
 
   const add = () => {
     const v = input.trim();
@@ -60,7 +60,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
       setInput('');
       return;
     }
-    // New keywords default to checked — that's what the user just typed.
+    // Từ khoá mới mặc định được chọn — đó là thứ người dùng vừa gõ.
     setDraft((d) => [...d, { text: v, checked: true }]);
     setInput('');
   };
@@ -81,11 +81,11 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
   };
 
   /**
-   * CRITICAL: this is the only path through which data leaves the modal.
-   * - Filter to only items the user kept checked.
-   * - Map back to a plain string[] (the parent owns that shape).
-   * - Call onSave FIRST, then onClose, so the parent can update state
-   *   without the modal unmounting mid-render with stale data.
+   * QUAN TRỌNG: đây là con đường duy nhất để dữ liệu rời khỏi modal.
+   * - Lọc chỉ giữ các mục người dùng còn tích chọn.
+   * - Map ngược về string[] đơn thuần (component chủ sở hữu hình dạng đó).
+   * - Gọi onSave TRƯỚC, rồi mới onClose, để component chủ cập nhật state
+   *   mà không bị modal gỡ khỏi cây DOM giữa lúc render với dữ liệu cũ.
    */
   const save = () => {
     const next = draft.filter((k) => k.checked).map((k) => k.text);
@@ -107,7 +107,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
     >
       <div className="w-full max-w-4xl bg-white rounded shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
-        {/* Header */}
+        {/* Đầu trang */}
         <header className="flex items-center justify-between px-5 py-3 border-b border-wp-gray">
           <h3 id="kw-modal-title" className="text-sm font-semibold text-ink-primary">
             Quản lý từ khoá & Google Trends
@@ -122,13 +122,13 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
           </button>
         </header>
 
-        {/* Two-column body */}
+        {/* Thân hai cột */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
 
-          {/* ─── LEFT COLUMN ─── keyword manager ─── */}
+          {/* ─── CỘT TRÁI ─── trình quản lý từ khoá ─── */}
           <section className="flex flex-col border-b md:border-b-0 md:border-r border-wp-gray">
 
-            {/* Add row */}
+            {/* Hàng thêm mới */}
             <div className="px-5 py-3 border-b border-wp-gray bg-gray-50">
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-ink-secondary mb-1.5">
                 Thêm từ khoá mới
@@ -155,7 +155,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
               </div>
             </div>
 
-            {/* List */}
+            {/* Danh sách */}
             <div className="flex-1 overflow-y-auto px-3 py-2 min-h-[200px] max-h-[calc(90vh-220px)]">
               {draft.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center text-xs text-ink-muted italic py-10">
@@ -170,7 +170,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
                         key={`${item.text}-${idx}`}
                         className="flex items-center gap-2 px-2 py-2 rounded hover:bg-wp-gray/40 group"
                       >
-                        {/* Checkbox */}
+                        {/* Hộp tích chọn */}
                         <button
                           type="button"
                           onClick={() => toggleChecked(idx)}
@@ -182,7 +182,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
                             : <Square      size={16} className="text-ink-muted" />}
                         </button>
 
-                        {/* Keyword pill */}
+                        {/* Viên từ khoá */}
                         <span className="flex-1 min-w-0 inline-flex items-center gap-1.5">
                           {isPrimary && <Star size={11} fill="currentColor" strokeWidth={0} className="text-wp-green flex-shrink-0" />}
                           <span className={[
@@ -199,7 +199,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
                           )}
                         </span>
 
-                        {/* Remove */}
+                        {/* Xoá */}
                         <button
                           type="button"
                           onClick={() => removeAt(idx)}
@@ -215,7 +215,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
               )}
             </div>
 
-            {/* Footer CTA — primary blue button */}
+            {/* CTA chân trang — nút xanh chính */}
             <div className="px-5 py-3 border-t border-wp-gray bg-gray-50">
               <button
                 type="button"
@@ -231,7 +231,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
             </div>
           </section>
 
-          {/* ─── RIGHT COLUMN ─── Google Trends placeholder ─── */}
+          {/* ─── CỘT PHẢI ─── chỗ trống Google Trends ─── */}
           <section className="flex flex-col bg-gray-50">
             <div className="px-5 py-3 border-b border-wp-gray bg-white">
               <div className="flex items-center gap-2 mb-2">
@@ -262,7 +262,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
               </div>
             </div>
 
-            {/* Chart placeholder / skeleton */}
+            {/* Khung biểu đồ / skeleton */}
             <div className="flex-1 p-5 overflow-hidden">
               {trendLoading ? (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-ink-muted">
@@ -271,7 +271,7 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
                 </div>
               ) : (
                 <div className="h-full flex flex-col gap-3">
-                  {/* Skeleton bars */}
+                  {/* Các cột skeleton */}
                   <div className="flex-1 bg-white border border-wp-gray rounded p-4">
                     <div className="flex items-end justify-around h-full gap-1.5">
                       {[28, 42, 36, 58, 51, 64, 72, 68, 80, 74, 62, 88, 76, 90, 84, 70, 56, 64, 72, 80].map((h, i) => (
@@ -300,9 +300,9 @@ export function KeywordManagerModal({ open, keywords, onClose, onSave }) {
 }
 
 /**
- * Convert the parent-owned string[] into the modal's working shape.
- * Every existing keyword starts CHECKED — the user's selection state
- * from inside the modal is what controls what gets saved back.
+ * Chuyển string[] do component chủ sở hữu thành hình dạng làm việc của modal.
+ * Mọi từ khoá hiện có bắt đầu ở trạng thái ĐƯỢC CHỌN — trạng thái chọn
+ * của người dùng bên trong modal chính là thứ quyết định những gì được lưu lại.
  */
 function toDraft(keywords) {
   return (keywords || []).map((k) => ({ text: String(k), checked: true }));

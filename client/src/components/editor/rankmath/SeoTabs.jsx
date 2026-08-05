@@ -4,14 +4,14 @@ import {
 } from 'lucide-react';
 
 /**
- * Tab strip for the Rank Math panel. Pure presentation; the active tab
- * id is owned by <RankMathSeoBox />.
+ * Dải tab cho bảng Rank Math. Chỉ thuần trình bày; id tab đang kích hoạt
+ * do <RankMathSeoBox /> sở hữu.
  *
- * Tabs are hardcoded in Vietnamese to match the rest of the CMS UI.
- * Icons use lucide-react so they render identically across browsers.
+ * Các tab được viết cứng bằng tiếng Việt để khớp với phần còn lại của UI CMS.
+ * Icon dùng lucide-react để hiển thị giống hệt nhau trên mọi trình duyệt.
  *
- * Active state: bold blue underline (2px) + ink-primary text + filled icon.
- * Inactive: muted text + outline-style icon, hover lifts to ink-primary.
+ * Trạng thái kích hoạt: gạch dưới xanh đậm (2px) + chữ ink-primary + icon đặc.
+ * Không kích hoạt: chữ mờ + icon dạng viền, hover nâng lên ink-primary.
  */
 const SEO_TABS = [
   { id: 'overview', label: 'Tổng quan',   Icon: Settings },
@@ -51,7 +51,7 @@ export function SeoTabs({ value, onChange }) {
               className={isActive ? 'text-wp-blue' : 'text-ink-muted'}
             />
             <span>{label}</span>
-            {/* Bottom underline indicator */}
+            {/* Chỉ báo gạch chân phía dưới */}
             <span
               aria-hidden="true"
               className={[

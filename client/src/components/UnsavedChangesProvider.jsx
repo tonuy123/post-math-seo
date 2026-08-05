@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
 
-// Provides a global window.showUnsavedChangesDialog(message): Promise<boolean>
-// The promise resolves to true when user confirms leaving, false when cancels.
+// Cung cấp window.showUnsavedChangesDialog(message) toàn cục: Promise<boolean>
+// Promise phân giải thành true khi người dùng xác nhận rời đi, false khi huỷ bỏ.
 export default function UnsavedChangesProvider({ children }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const resolverRef = React.useRef(null);
 
   useEffect(() => {
-    // Install global helper
+    // Cài đặt helper toàn cục
     window.showUnsavedChangesDialog = (msg) => {
       return new Promise((resolve) => {
         setMessage(msg || `${window.location.host} says`);
@@ -19,7 +19,7 @@ export default function UnsavedChangesProvider({ children }) {
     };
 
     return () => {
-      // cleanup
+      // dọn dẹp
       delete window.showUnsavedChangesDialog;
     };
   }, []);

@@ -22,7 +22,7 @@ const { initializeFirebase, getDb } = require('../config/firebase');
 const { POSTS_COLLECTION, DEFAULT_BASE_DOMAIN } = require('../config/constants');
 
 // ─────────────────────────────────────────────────────────────────────
-//  Config
+//  Cấu hình
 // ─────────────────────────────────────────────────────────────────────
 const BASE_URL = (process.env.PUBLIC_BASE_URL || DEFAULT_BASE_DOMAIN).replace(/\/+$/, '');
 const SITE_NAME = process.env.PUBLIC_SITE_NAME || 'Tuyển Sinh Thạc Sĩ - Tập đoàn Quốc Tế Việt';
@@ -36,7 +36,7 @@ function parseArgs() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-//  Helpers
+//  Hàm tiện ích
 // ─────────────────────────────────────────────────────────────────────
 function escapeHtml(s) {
   return String(s ?? '')
@@ -163,11 +163,15 @@ function absUrl(relPath) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-//  Meta tags builder
+//  Trình tạo thẻ meta
 // ─────────────────────────────────────────────────────────────────────
 function buildRobotsMeta(seo) {
-  const robots = seo?.robots ?? {};
-  const advanced = seo?.advanced ?? {};
+  // Shape mới (AdvancedTab của CMS): robots nằm trong seo.advanced.robots,
+  // còn max-snippet/max-image-preview nằm trong seo.advanced.advanced.
+  // Fallback sang shape legacy (seo.robots / seo.advanced.maxSnippet) để
+  // các post cũ vẫn in đúng directive.
+  const robots = seo?.advanced?.robots ?? seo?.robots ?? {};
+  const advanced = seo?.advanced?.advanced ?? seo?.advanced ?? {};
   const tokens = [];
 
   const noIndex = robots.noIndex === true || robots.index === false;
@@ -187,6 +191,12 @@ function buildRobotsMeta(seo) {
 
 function buildJsonLd(post, meta, absPostUrl, featuredAbs) {
   const type = (post.seo?.schemaType || 'article').toLowerCase();
+  // Từ khoá lấy từ khối SEO (focusKeywords, fallback legacy focusKeyword)
+  // — chỉ rơi về post.tags khi cả hai đều rỗng.
+  const kws = post.seo?.focusKeywords;
+  const kwString = Array.isArray(kws) && kws.length > 0
+    ? kws.join(', ')
+    : (post.seo?.focusKeyword || (Array.isArray(post.tags) ? post.tags.join(', ') : ''));
   const base = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -198,7 +208,7 @@ function buildJsonLd(post, meta, absPostUrl, featuredAbs) {
     mainEntityOfPage: { '@type': 'WebPage', '@id': absPostUrl },
     datePublished: post.createdAt ? new Date(post.createdAt).toISOString() : undefined,
     dateModified: post.updatedAt ? new Date(post.updatedAt).toISOString() : undefined,
-    keywords: Array.isArray(post.tags) ? post.tags.join(', ') : undefined,
+    keywords: kwString || undefined,
     articleSection: Array.isArray(post.categories) ? post.categories.join(', ') : undefined,
   };
 
@@ -218,7 +228,7 @@ function buildMetaTags(post, postUrl, featuredRel) {
   const seo = post.seo || {};
   const title = seoField(seo, 'metaTitle', 'seoTitle') || post.title || '';
   const description = seoField(seo, 'metaDescription', 'seoDescription') || post.excerpt || '';
-  const canonical = seoField(seo, 'canonicalUrl') || postUrl;
+  const canonical = seoField(seo?.advanced, 'canonicalUrl') || seoField(seo, 'canonicalUrl') || postUrl;
   const socialTitle = seoField(seo, 'socialTitle') || title;
   const socialDesc = seoField(seo, 'socialDescription') || description;
   const socialImage = seoField(seo, 'socialImage');
@@ -253,7 +263,7 @@ function buildMetaTags(post, postUrl, featuredRel) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-//  Page templates
+//  Template trang
 // ─────────────────────────────────────────────────────────────────────
 const PAGE_CSS = `
   :root { --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --brand:#1e40af; }
@@ -419,7 +429,7 @@ Sitemap: ${baseUrl}/sitemap.xml
 }
 
 // ─────────────────────────────────────────────────────────────────────
-//  Main
+//  Hàm chính
 // ─────────────────────────────────────────────────────────────────────
 async function main() {
   const { out } = parseArgs();

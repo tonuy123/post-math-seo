@@ -1,7 +1,7 @@
 /**
- * API Router (v1)
+ * Bộ định tuyến API (v1)
  *
- * Aggregates feature routers under /api/v1.
+ * Gộp các router theo tính năng dưới /api/v1.
  */
 
 const express = require('express');

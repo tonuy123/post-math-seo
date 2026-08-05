@@ -6,30 +6,30 @@ import { CHECKLIST_SECTIONS } from './lib/seoConstants';
 import { groupChecksBySection } from './lib/calculateSeoScore';
 
 /**
- * Collapsible accordion checklist grouped by section.
+ * Checklist dạng accordion thu gọn được nhóm theo phần.
  *
- * Visual structure (mirroring Rank Math's sidebar):
+ * Cấu trúc hiển thị (phản chiếu thanh bên Rank Math):
  *   <div accordion>
- *     <button header> [Title]                [Badge ✓/x]    [Chevron ▾] </button>
+ *     <button header> [Tiêu đề]                [Huy hiệu ✓/x]    [Chevron ▾] </button>
  *     <div body>                                              ↓
  *       <ul> [✓ label] / [✗ label] / [⚠ label] ...               </ul>
  *     </div>
  *   </div>
  *
- * State: each section has its own open/closed state. All DEFAULT open
- * (`useState(true)`) to match the screenshot's "everything expanded" UX.
- * If user wants them all closed by default, change the initialiser.
+ * State: mỗi phần có trạng thái mở/đóng riêng. Mặc định tất cả MỞ
+ * (`useState(true)`) để khớp UX "mọi thứ được mở rộng" trong ảnh chụp màn hình.
+ * Nếu muốn mặc định đóng hết, hãy sửa bộ khởi tạo.
  *
- * Badge logic:
- *   - All items passed  -> Green pill "✓ Tất cả đều tốt"
- *   - Any failure       -> Red pill "✗ [N] lỗi"
+ * Logic huy hiệu:
+ *   - Tất cả mục đạt  -> viên xanh lá "✓ Tất cả đều tốt"
+ *   - Có mục trượt    -> viên đỏ "✗ [N] lỗi"
  *
- * Items use three icons:
- *   - CheckCircle2 (green) when passed
- *   - AlertCircle  (orange) when failed AND clickable (has fieldKey)
- *   - XCircle      (red) when failed AND no fieldKey
+ * Các mục dùng ba icon:
+ *   - CheckCircle2 (xanh lá) khi đạt
+ *   - AlertCircle  (cam) khi trượt VÀ có thể bấm (có fieldKey)
+ *   - XCircle      (đỏ) khi trượt VÀ không có fieldKey
  *
- * Props unchanged from the previous flat list — this is UI-only.
+ * Props không đổi so với danh sách phẳng trước đây — đây chỉ là viết lại UI.
  */
 export function SeoChecklist({ checks = [], onFocus }) {
   const groups = groupChecksBySection(checks, CHECKLIST_SECTIONS);
@@ -56,10 +56,10 @@ export function SeoChecklist({ checks = [], onFocus }) {
   );
 }
 
-// ─── Section accordion sub-component ─────────────────────────────────────
+// ─── Component con accordion theo phần ─────────────────────────────────────
 
 function SectionAccordion({ section, items, onFocus }) {
-  // Default CLOSED — user expands each section by clicking the chevron.
+  // Mặc định ĐÓNG — người dùng mở rộng từng phần bằng cách bấm chevron.
   const [open, setOpen] = useState(false);
 
   const passedCount = items.filter((i) => i.passed).length;
@@ -68,7 +68,7 @@ function SectionAccordion({ section, items, onFocus }) {
 
   return (
     <div className="rounded border border-wp-gray bg-white overflow-hidden">
-      {/* Header — gray background, bold title, badge, chevron */}
+      {/* Đầu — nền xám, tiêu đề đậm, huy hiệu, chevron */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -76,19 +76,19 @@ function SectionAccordion({ section, items, onFocus }) {
         aria-controls={`seo-checks-${section.id}`}
         className="w-full flex items-center gap-3 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-wp-blue/30"
       >
-        {/* Section title */}
+        {/* Tiêu đề phần */}
         <span className="text-[13px] font-bold uppercase tracking-wider text-ink-primary">
           {section.label}
         </span>
 
-        {/* Mini counter (passed/total) */}
+        {/* Bộ đếm nhỏ (đạt/tổng) */}
         <span className="text-[11px] text-ink-muted font-medium tabular-nums">
           {passedCount}/{items.length}
         </span>
 
         <span className="flex-1" />
 
-        {/* Badge — green if all pass, red if any failure */}
+        {/* Huy hiệu — xanh nếu tất cả đạt, đỏ nếu có bất kỳ mục trượt */}
         {allPassed ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-wp-green/10 text-wp-green border border-wp-green/30">
             <Check size={11} strokeWidth={3} />
@@ -111,7 +111,7 @@ function SectionAccordion({ section, items, onFocus }) {
         />
       </button>
 
-      {/* Body — white background, list of checks */}
+      {/* Thân — nền trắng, danh sách các tiêu chí */}
       {open && (
         <ul id={`seo-checks-${section.id}`} className="px-3 py-2 divide-y divide-wp-gray">
           {items.map((c) => {
@@ -152,7 +152,7 @@ function SectionAccordion({ section, items, onFocus }) {
   );
 }
 
-// ─── Tiny icon helper (green check / orange warning / red x) ────────────
+// ─── Hàm trợ giúp icon nhỏ (tích xanh lá / cảnh báo cam / x đỏ) ────────────
 
 function CheckIcon({ passed, hasField }) {
   if (passed) {

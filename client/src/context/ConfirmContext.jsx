@@ -1,6 +1,6 @@
 /**
- * Confirm dialog context — replaces legacy `showCustomConfirm(message, cb)`.
- * Usage:
+ * Context dialog xác nhận — thay thế `showCustomConfirm(message, cb)` cũ.
+ * Cách dùng:
  *   const confirm = useConfirm();
  *   confirm({ title: '...', onConfirm: () => {...} });
  */
