@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Send, Trash2, X, Eye } from 'lucide-react';
+import { ArrowLeft, Send, Trash2, X, Eye, BarChart3 } from 'lucide-react';
 
 import { Button } from '../../components/ui/Button';
 import { Input, Label, Select, Textarea } from '../../components/ui/Input';
@@ -11,19 +11,23 @@ import { useConfirm } from '../../context/ConfirmContext';
 import { useLoading } from '../../context/LoadingContext';
 import { useAuth } from '../../context/AuthContext';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
+import { useCategories } from '../../hooks/useCategories';
 import { postsApi } from '../../services/api/posts';
-import { CATEGORIES, POST_STATUS, DEFAULT_BASE_DOMAIN } from '../../utils/constants';
+import { POST_STATUS, DEFAULT_BASE_DOMAIN } from '../../utils/constants';
 import { generateSlug } from '../../utils/helpers';
 import { RankMathSeoBox } from '../../components/editor/rankmath';
 import { CategorySidebar } from '../../components/editor/CategorySidebar';
-import { PostAnalyticsWidget } from '../../components/editor/PostAnalyticsWidget';
+// TODO Phase 2: nối GA4/Search Console rồi bật lại PostAnalyticsWidget
+// import { PostAnalyticsWidget } from '../../components/editor/PostAnalyticsWidget';
 import { PostOptionsWidget } from '../../components/editor/PostOptionsWidget';
 import { db } from '../../services/firebase/config';
 
-const CATEGORY_LABEL = {
-  tech: 'Technology', lifestyle: 'Lifestyle', business: 'Business',
-  design: 'Design', marketing: 'Marketing',
-};
+// `categories` state holds category IDs (matching Firestore doc ids).
+// When saving we resolve them to human-readable names so the post
+// document stores a readable label that the PostsList filter can match
+// directly — no joins required.
+
+
 
 export default function PostEditor() {
   const { id } = useParams();
@@ -37,6 +41,7 @@ export default function PostEditor() {
   const { confirm } = useConfirm();
   const { showLoading, hideLoading } = useLoading();
   const { user: currentUser } = useAuth();
+  const { categories: allCats } = useCategories();
 
   const [title, setTitle]             = useState('');
   const [slug, setSlug]               = useState('');
@@ -57,6 +62,12 @@ export default function PostEditor() {
   });
   const [content, setContent]         = useState('');
   const [loaded, setLoaded]           = useState(isNew);
+
+  // Persist the NAMES loaded from the post doc so we can re-resolve them
+  // into Firestore IDs once the `categories` collection snapshot lands.
+  // (The Firestore listener fires asynchronously, so the IDs aren't
+  // available the first time we read the post.)
+  const [postCategoryNames, setPostCategoryNames] = useState([]);
 
   // Real-time + post metadata (author, first publish, revision count,
   // full editors history). All sourced from the post document — never
@@ -157,10 +168,14 @@ export default function PostEditor() {
       setExcerpt(p.excerpt || '');
       setStatus(p.status === 'trashed' ? POST_STATUS.DRAFT : (p.status || POST_STATUS.DRAFT));
       setSchedule(p.schedule || '');
-      setCategories(new Set((p.categories || []).map(c => {
-        const found = Object.entries(CATEGORY_LABEL).find(([, label]) => label === c);
-        return found ? found[0] : null;
-      }).filter(Boolean)));
+      // Post documents store category NAMES (Vietnamese labels) for
+      // human readability. Map them back to Firestore doc IDs so the
+      // sidebar can check the right boxes. `allCats` arrives
+      // asynchronously via useCategories(); the empty `categories` array
+      // is the harmless initial state (mapping produces empty Set).
+      // We re-run this mapping as soon as `allCats` populates — see
+      // the effect immediately below.
+      setPostCategoryNames(p.categories || []);
       setTags(p.tags || []);
       setFeaturedImage(p.featuredImage || null);
       setContent(p.content || '');
@@ -209,6 +224,20 @@ export default function PostEditor() {
     return () => hideLoading(token);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Resolve stored category NAMES → Firestore IDs once the categories
+  // snapshot is available. Runs again whenever the categories list
+  // changes (e.g. a new category is added mid-edit) so the sidebar
+  // stays in sync.
+  useEffect(() => {
+    if (!postCategoryNames.length) return;
+    if (!allCats || !allCats.length) return;
+    setCategories(new Set(
+      postCategoryNames
+        .map((name) => allCats.find((c) => c.name === name)?.id)
+        .filter(Boolean),
+    ));
+  }, [allCats, postCategoryNames]);
 
   /**
    * Fetch + populate the analytics card.
@@ -293,9 +322,16 @@ export default function PostEditor() {
     const finalStatus = [POST_STATUS.DRAFT, POST_STATUS.PUBLISHED, POST_STATUS.PRIVATE].includes(status)
       ? status
       : POST_STATUS.DRAFT;
+    // Resolve selected category IDs → readable names so the post document
+    // stores what the user actually sees ("Công Nghệ") rather than opaque
+    // Firestore IDs. Fall back to the raw value if the lookup misses.
+    const categoryNames = [...categories].map((id) => {
+      const found = (allCats || []).find((c) => c.id === id);
+      return found ? found.name : id;
+    });
     return {
       title, slug: seoSlug,
-      categories: [...categories].map(k => CATEGORY_LABEL[k]),
+      categories: categoryNames,
       tags, status: finalStatus, excerpt, content: body, schedule,
       featuredImage,
       // Send BOTH legacy + new shape so any server version keeps working.
@@ -543,7 +579,14 @@ export default function PostEditor() {
             </div>
           </div>
 
-          {/* Post analytics — donut chart + 4 stats (2x2 grid) */}
+          {/* Post analytics — tạm ẩn, chưa nối GA4 (xem TODO ở import) */}
+          <div className="bg-white border border-wp-gray-dark rounded">
+            <div className="p-4 text-center">
+              <BarChart3 size={16} className="mx-auto mb-1.5 text-gray-400" />
+              <p className="text-sm text-ink-muted m-0">Chưa kết nối GA4</p>
+            </div>
+          </div>
+          {/* TODO Phase 2: nối GA4/Search Console rồi bật lại:
           <PostAnalyticsWidget
             seoScore={analytics.seoScore}
             views={analytics.views}
@@ -553,6 +596,7 @@ export default function PostEditor() {
             isLoading={analytics.loading}
             onRefresh={() => loadAnalytics(id)}
           />
+          */}
 
           {/* Trash */}
           {!isNew && (

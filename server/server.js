@@ -25,8 +25,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // -------------------- Middleware --------------------
+// CLIENT_ORIGIN hỗ trợ nhiều origin phân cách bằng dấu phẩy:
+//   CLIENT_ORIGIN=http://localhost:5173,https://cms.example.com
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  origin(origin, callback) {
+    // Không có Origin (curl, Googlebot, tool) → cho phép
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '2mb' })); // Base64 images can be large

@@ -47,15 +47,25 @@ export function useUnsavedChangesGuard(isDirty, message) {
     const origPush = window.history.pushState.bind(window.history);
     const origReplace = window.history.replaceState.bind(window.history);
 
-    function confirmLeave() {
+    // synchronous fallback using native confirm
+    function confirmLeaveSync() {
       // eslint-disable-next-line no-alert
       return window.confirm(promptText);
     }
 
     function guardedPush(state, title, url) {
       if (!dirtyRef.current) return origPush(state, title, url);
-      if (!confirmLeave()) return; // user cancel — giữ nguyên URL cũ
-      // user OK → cho phép đi tiếp, nhưng phải tạm tắt guard để lần push này không bị chặn lại
+      // If custom async dialog is not present, fallback to sync confirm
+      if (!window.showUnsavedChangesDialog) {
+        if (!confirmLeaveSync()) return; // user cancel — giữ nguyên URL cũ
+        dirtyRef.current = false;
+        blockedUrlRef.current = null;
+        return origPush(state, title, url);
+      }
+      // If app code calls history.pushState while dirty and a custom dialog exists,
+      // we cannot synchronously await it here. Fall back to native confirm so pushState
+      // callers are not blocked unexpectedly.
+      if (!confirmLeaveSync()) return;
       dirtyRef.current = false;
       blockedUrlRef.current = null;
       return origPush(state, title, url);
@@ -76,8 +86,24 @@ export function useUnsavedChangesGuard(isDirty, message) {
         // chưa kịp revert thì revert ngay
         origPush(null, '', blockedUrlRef.current);
       }
-      if (!confirmLeave()) {
-        // user cancel — revert lại URL trước đó
+
+      if (window.showUnsavedChangesDialog) {
+        // ask using async custom dialog; when resolved perform action
+        window.showUnsavedChangesDialog(promptText).then((ok) => {
+          if (!ok) {
+            if (blockedUrlRef.current) origPush(null, '', blockedUrlRef.current);
+            return;
+          }
+          // user OK → cho phép rời
+          dirtyRef.current = false;
+          window.history.pushState = origPush;
+          window.history.back();
+        });
+        return;
+      }
+
+      // fallback to synchronous confirm
+      if (!confirmLeaveSync()) {
         if (blockedUrlRef.current) origPush(null, '', blockedUrlRef.current);
       } else {
         // user OK → cho phép rời
@@ -100,7 +126,19 @@ export function useUnsavedChangesGuard(isDirty, message) {
       } catch { return; }
       e.preventDefault();
       e.stopPropagation();
-      if (!confirmLeave()) return;
+
+      if (window.showUnsavedChangesDialog) {
+        // async custom dialog
+        window.showUnsavedChangesDialog(promptText).then((ok) => {
+          if (!ok) return;
+          dirtyRef.current = false;
+          window.location.assign(href);
+        });
+        return;
+      }
+
+      // fallback to sync confirm
+      if (!confirmLeaveSync()) return;
       dirtyRef.current = false;
       window.location.assign(href);
     }

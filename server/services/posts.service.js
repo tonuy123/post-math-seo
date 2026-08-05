@@ -72,11 +72,15 @@ function validatePayload(payload, { partial = false } = {}) {
 }
 
 async function listPosts({ status, author, search, category } = {}) {
-  let query = postsCol().orderBy('createdAt', 'desc');
+  // Không dùng orderBy('createdAt') kết hợp where() vì Firestore đòi composite
+  // index — mới deploy sẽ 500. Query đơn giản rồi sort trong memory.
+  let query = postsCol();
   if (status) query = query.where('status', '==', status);
   if (author) query = query.where('author', '==', author);
   const snap = await query.get();
   let docs = snap.docs.map(serializePost);
+
+  docs.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 
   if (category) {
     docs = docs.filter((p) =>

@@ -8,5 +8,6 @@ firebase-service-account.json
 .DS_Store
 dist/
 build/
+build-public/
 .vscode/
 .idea/

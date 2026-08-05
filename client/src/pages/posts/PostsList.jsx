@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { usePosts } from '../../hooks/usePosts';
+import { useCategories } from '../../hooks/useCategories';
 import { Button } from '../../components/ui/Button';
 import { Input, Select } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
@@ -15,7 +16,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { useConfirm } from '../../context/ConfirmContext';
 import { useToast } from '../../context/ToastContext';
 import { postsApi } from '../../services/api/posts';
-import { CATEGORIES, POSTS_PER_PAGE } from '../../utils/constants';
+import { POSTS_PER_PAGE } from '../../utils/constants';
 import { formatDate } from '../../utils/helpers';
 
 // Local filter list with dedicated icons. Order: All → Published → Drafts → Private → Trash.
@@ -61,6 +62,7 @@ export default function PostsList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { posts, loading, refresh } = usePosts();
+  const { categories } = useCategories();
   const { confirm } = useConfirm();
   const { showToast } = useToast();
 
@@ -178,14 +180,16 @@ export default function PostsList() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 bg-white border-b-2 border-wp-gray">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Category / Author filters — always visible, including the trash tab. */}
+          {/* Category / Author filters — always visible, including the trash tab.
+              Categories come from the Firestore `categories` collection (real-time)
+              so the dropdown reflects exactly what users have created in the editor. */}
           <Select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="h-9 px-3 py-0 text-sm"
           >
             <option value="">{t('allCategories')}</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{t(c.toLowerCase())}</option>)}
+            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
           </Select>
           <Select
             value={author}
