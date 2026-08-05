@@ -46,7 +46,9 @@ module.exports = Object.freeze({
     'Marketing',
   ]),
 
-  // Seed admin (only created on first boot if no admin user exists)
+  // Seed admin (only created on first boot if no admin user exists).
+  // Password BẮT BUỘC đọc từ process.env — không có default hardcode.
+  // Server sẽ từ chối seed nếu thiếu SEED_ADMIN_PASSWORD.
   SEED_ADMIN_USERNAME: process.env.SEED_ADMIN_USERNAME || 'admin',
-  SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD || 'admin123',
+  SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD,
 });

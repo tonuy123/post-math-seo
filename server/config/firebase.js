@@ -9,6 +9,12 @@
  *  firebase-admin v14 flattened its public API — `admin.credential`,
  *  `admin.firestore`, and `admin.auth` are no longer namespaces; the
  *  Firestore / Auth submodules are lazy-required instead.
+ *
+ *  Service account nạp theo thứ tự ưu tiên:
+ *    1. FIREBASE_SERVICE_ACCOUNT_JSON — nội dung JSON dán thẳng vào env var
+ *       (chuẩn deploy lên Render.com — không upload được file)
+ *    2. FIREBASE_SERVICE_ACCOUNT_B64  — nội dung JSON mã hoá base64
+ *    3. FIREBASE_SERVICE_ACCOUNT_PATH — đường dẫn file JSON (local dev)
  * ============================================================================
  */
 
@@ -20,25 +26,53 @@ let initialized = false;
 let _db = null;
 let _auth = null;
 
-function initializeFirebase() {
-  if (initialized) return admin;
-
+function loadServiceAccount() {
+  // 1) Raw JSON trong env var (Render)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    try {
+      return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    } catch (e) {
+      console.warn('[firebase] FIREBASE_SERVICE_ACCOUNT_JSON invalid JSON:', e.message);
+      return null;
+    }
+  }
+  // 2) Base64 trong env var
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_B64) {
+    try {
+      return JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8'));
+    } catch (e) {
+      console.warn('[firebase] FIREBASE_SERVICE_ACCOUNT_B64 decode failed:', e.message);
+      return null;
+    }
+  }
+  // 3) File (local dev)
   const serviceAccountPath = path.resolve(
     process.cwd(),
     process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './config/serviceAccountKey.json'
   );
+  if (!fs.existsSync(serviceAccountPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+  } catch (e) {
+    console.warn('[firebase] Service account file unreadable:', e.message);
+    return null;
+  }
+}
 
-  if (!fs.existsSync(serviceAccountPath)) {
+function initializeFirebase() {
+  if (initialized) return admin;
+
+  const serviceAccount = loadServiceAccount();
+
+  if (!serviceAccount) {
     console.warn(
-      `[firebase] WARNING: Service account file not found at "${serviceAccountPath}".\n` +
-      `         Download it from Firebase Console > Project Settings > Service Accounts\n` +
-      `         and place it there, or set FIREBASE_SERVICE_ACCOUNT_PATH in .env.\n` +
+      `[firebase] WARNING: Service account not found.\n` +
+      `         Local dev: place JSON at ${path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './config/serviceAccountKey.json')}\n` +
+      `         Render.com: set FIREBASE_SERVICE_ACCOUNT_JSON (paste raw JSON) or FIREBASE_SERVICE_ACCOUNT_B64 (base64).\n` +
       `         Server will start, but Firestore calls will fail until configured.`
     );
     return null;
   }
-
-  const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
   admin.initializeApp({
     credential: admin.cert(serviceAccount),

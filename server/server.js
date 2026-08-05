@@ -53,7 +53,7 @@ if (firebaseAdmin) {
     try {
       const result = await usersService.seedDefaultAdmin({
         username: process.env.SEED_ADMIN_USERNAME || 'admin',
-        password: process.env.SEED_ADMIN_PASSWORD || 'admin123',
+        password: process.env.SEED_ADMIN_PASSWORD,
       });
       console.log(`[bootstrap] seed-admin: ${result.created ? 'created' : 'skipped'} (${result.reason || 'ok'})`);
     } catch (e) {
