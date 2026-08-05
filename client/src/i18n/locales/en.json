@@ -94,6 +94,7 @@
   "postSavedSuccess": "Post saved successfully!",
   "postPublishedSuccess": "Post published successfully!",
   "postUpdatedSuccess": "Post updated successfully!",
+  "update": "Update",
   "postDeletedSuccess": "Post deleted successfully!",
   "postRestoredSuccess": "Post restored successfully!",
   "postTrashedSuccess": "Post moved to trash!",
