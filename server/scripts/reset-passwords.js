@@ -15,7 +15,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-const { getDb } = require('../config/firebase');
+const { initializeFirebase, getDb } = require('../config/firebase');
 const { USERS_COLLECTION } = require('../config/constants');
 const { hashPassword } = require('../services/password.service');
 
@@ -35,6 +35,7 @@ async function main() {
   }
 
   const { user: targetUser, password } = parseArgs();
+  initializeFirebase();
   const db = getDb();
   const snap = await db.collection(USERS_COLLECTION).get();
 

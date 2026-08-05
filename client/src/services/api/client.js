@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Axios API client.
  * - baseURL is taken from VITE_API_BASE_URL (defaults to "/api/v1")
  * - Auto-attaches Authorization: Bearer <token> when available
@@ -46,3 +46,4 @@ api.interceptors.response.use(
     return Promise.reject({ status, message, raw: error });
   }
 );
+
