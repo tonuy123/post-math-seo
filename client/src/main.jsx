@@ -8,7 +8,7 @@ import UnsavedChangesProvider from './components/UnsavedChangesProvider';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/admin">
       <UnsavedChangesProvider>
         <App />
       </UnsavedChangesProvider>
