@@ -13,6 +13,8 @@
 const { getDb } = require('../config/firebase');
 const { POSTS_COLLECTION, MAX_FEATURED_IMAGE_BYTES } = require('../config/constants');
 const { generateSlug } = require('./slug.service');
+const path = require('path');
+const { notifyGoogle } = require('./indexing.service');
 
 function postsCol() {
   return getDb().collection(POSTS_COLLECTION);
@@ -143,6 +145,7 @@ async function createPost(payload, authorUsername) {
     previousStatus: null,
   };
   const ref = await postsCol().add(doc);
+  triggerStaticBuild(doc); // Build HTML tĩnh chạy ngầm — không chặn response
   return getPost(ref.id);
 }
 
@@ -175,7 +178,87 @@ async function updatePost(id, payload) {
   }
   if (payload.title && !payload.slug) update.slug = generateSlug(payload.title);
   await postsCol().doc(id).update(update);
-  return getPost(id);
+  const updated = await getPost(id);
+  triggerStaticBuild(updated); // Build HTML tĩnh chạy ngầm — không chặn response
+  return updated;
+}
+
+/**
+ * Trigger build HTML tĩnh sau khi bài viết được lưu/xuất bản thành công.
+ *
+ * FIRE-AND-FORGET (chạy ngầm): KHÔNG await, không chặn response trả về
+ * client. User bấm Save là nhận thông báo ngay, việc build server tự lo.
+ *
+ * @param {object} [post] Bài vừa lưu (cần `slug` + `status`) — dùng để
+ *   build URL và quyết định có ping Google hay không.
+ *
+ * 2 phương án — bật phương án mày dùng, comment lại phương án kia
+ * (CHỈ bật đúng 1 cái):
+ *   A) Chạy local: chạy lệnh `npm run gen:static` ngay trên máy server.
+ *      Sau khi build THÀNH CÔNG mới gọi notifyGoogle(postUrl) — Googlebot
+ *      chỉ được ping khi HTML đã tồn tại, tránh 404 đứt cáp.
+ *   B) Bắn webhook: POST tới process.env.DEPLOY_WEBHOOK_URL (cho CI/máy khác).
+ */
+function triggerStaticBuild(post) {
+  setImmediate(() => {
+    try {
+      const base = (process.env.PUBLIC_BASE_URL || process.env.DEFAULT_BASE_DOMAIN || '').replace(/\/+$/, '');
+      const postUrl = post && post.slug && base
+        ? `${base}/blog/${encodeURIComponent(post.slug)}/`
+        : null;
+      // Chỉ ping Google khi bài đã published (build chỉ sinh bài published;
+      // ping bài draft thì Googlebot ăn 404).
+      const shouldNotify = post && post.status === 'published';
+
+      // ══════ Option A (MẶC ĐỊNH): chạy local — npm run gen:static ══════
+      const { exec } = require('child_process');
+      exec(
+        'npm run gen:static',
+        { cwd: path.join(__dirname, '..'), timeout: 120000 },
+        (err, stdout, stderr) => {
+          if (err) {
+            // eslint-disable-next-line no-console
+            console.error('[static-build] gen:static FAILED:', err.message);
+            return;
+          }
+          if (stderr) {
+            // eslint-disable-next-line no-console
+            console.warn('[static-build] gen:static stderr:', stderr.trim().slice(-500));
+          }
+          if (stdout) {
+            const last = stdout.trim().split('\n').pop();
+            // eslint-disable-next-line no-console
+            console.log('[static-build] gen:static OK:', last);
+          }
+          // ⚠️ Chỉ ping Google SAU KHI build xong HTML.
+          if (shouldNotify && postUrl) {
+            // eslint-disable-next-line no-console
+            console.log(`[static-build] build xong — ping Google cho ${postUrl}`);
+            notifyGoogle(postUrl); // fire-and-forget, lỗi đã tự xử lý trong service
+          }
+        }
+      );
+
+      // ══════ Option B (đang comment): bắn webhook ──────────────────────
+      // Dùng khi server chạy ở nơi không chạy được npm (vd: Render)
+      // và muốn máy khác/CI lo phần build. Set DEPLOY_WEBHOOK_URL trong .env.
+      // fetch(process.env.DEPLOY_WEBHOOK_URL, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     source: 'cms',
+      //     event: 'post.saved',
+      //     url: postUrl,
+      //     at: new Date().toISOString(),
+      //   }),
+      // })
+      //   .then((r) => console.log(`[static-build] webhook → ${r.status}`))
+      //   .catch((e) => console.error('[static-build] webhook FAILED:', e.message));
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[static-build] FAILED:', e.message);
+    }
+  });
 }
 
 async function trashPost(id) {
